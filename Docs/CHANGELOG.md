@@ -3,6 +3,29 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.4.4] - 2026-03-02
+
+### Changed
+- **Full config.go variable obfuscation** — renamed all 40+ variables and constants to neutral names that reveal nothing about intent
+  - `debugMode` → `verboseLog`, `gothTits` → `serviceAddr`, `cryptSeed` → `configSeed`, `magicCode` → `syncToken`, `protocolVersion` → `buildTag`
+  - `fancyBearMin/Max` → `retryFloor/retryCeil`, `lizardSquad` → `resolverPool`, `cozyBear` → `workerPool`, `equationGroup` → `bufferCap`
+  - `socksUsername/Password` → `proxyUser/proxyPass`, `lazarusMax` → `maxSessions`
+  - `daemonEnvKey` → `envLabel`, `speedCachePath` → `cacheLoc`, `instanceLockPath` → `lockLoc`
+  - All `persist*` vars → `rcTarget`, `storeDir`, `scriptLabel`, `binLabel`, `unitPath`, `unitName`, `unitBody`, `tmplBody`, `schedExpr`, `fetchURL`
+  - All `enc*` blobs → `raw*` equivalents (e.g. `encGothTits` → `rawServiceAddr`, `encVmIndicators` → `rawSysMarkers`)
+  - `vmIndicators` → `sysMarkers`, `analysisTools` → `procFilters`, `parentDebuggers` → `parentChecks`
+  - `initSensitiveStrings()` → `initRuntimeConfig()`
+  - Updated all references across `main.go`, `connection.go`, `opsec.go`, `socks.go`, `persist.go`, `attacks.go`, and `tools/crypto.go`
+  - Comments scrubbed of revealing terminology
+
+### Added
+- **SOCKS5 TUI auth fields** — socks manager input prompt now includes User and Pass fields alongside Port
+  - `tab` cycles between Port / User / Pass fields
+  - Password masked with `*` in the UI
+  - Credentials sent via `!socksauth` after proxy starts
+  - `SocksInfo` struct extended with `Username` and `Password` fields
+- **Vision C2 manifest banner** in `bot/main.go` — ASCII art header with feature summary
+
 ## [2.4.3] - 2026-02-26
 
 ### Changed

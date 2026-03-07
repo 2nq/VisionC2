@@ -68,8 +68,6 @@
 
 ---
 
-<img width="1179" height="586" alt="image" src="https://github.com/user-attachments/assets/06f7ca4c-3119-4cd3-81dd-2224d131c290" />
-
 ## Installation
 
 ### Prerequisites
@@ -211,7 +209,5 @@ To change C2 address later: `python3 setup.py` -> option **[2]**. Redeploy bots 
 **Syn2Much** -- [dev@sinnners.city](mailto:dev@sinnners.city) | [@synacket](https://x.com/synacket)
 
 ---
-
 <div align="center">
-<sub>Built different. Maintained by Syn.</sub>
 </div>

@@ -3,6 +3,14 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.4.5] - 2026-03-07
+
+### Changed
+- **Bundled UPX binary** — `tools/upx` now ships a static UPX 4.2.4 binary; `build.sh` uses it directly instead of relying on system-installed `upx-ucl` or `upx` packages
+- **Removed `upx-ucl` from prerequisites** — no longer needed in `apt install`; README updated accordingly
+
+---
+
 ## [2.4.4] - 2026-03-02
 
 ### Changed

@@ -72,12 +72,16 @@ build_for_arch() {
         strip --strip-all "$OUTPUT" 2>/dev/null || echo "strip failed for $arch_name"
     fi
 
-    # Compress the binary with UPX (fast aggressive compression)
+    # Compress the binary with UPX (bundled in tools/)
     # Using --best --lzma for good compression without ultra-brute slowness
-    if command -v upx &> /dev/null; then
-        upx --best --lzma "$OUTPUT" 2>/dev/null || \
-        upx -9 "$OUTPUT" 2>/dev/null || \
+    local UPX_BIN="$SCRIPT_DIR/upx"
+    if [ -x "$UPX_BIN" ]; then
+        "$UPX_BIN" --best --lzma "$OUTPUT" 2>/dev/null || \
+        "$UPX_BIN" -9 "$OUTPUT" 2>/dev/null || \
         echo "UPX compression skipped for $arch_name"
+    else
+        echo "ERROR: UPX binary not found at $UPX_BIN"
+        echo "       Download it: curl -sL https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.xz | tar -xJ --strip-components=1 -C $SCRIPT_DIR upx-4.2.4-amd64_linux/upx"
     fi
     INDEX=$((INDEX + 1))
 }

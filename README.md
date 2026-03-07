@@ -75,7 +75,7 @@
 ### Prerequisites
 
 ```bash
-sudo apt update && sudo apt install -y upx-ucl openssl git wget gcc python3 screen netcat
+sudo apt update && sudo apt install -y openssl git wget gcc python3 screen netcat
 
 # Go 1.23+
 wget https://go.dev/dl/go1.23.0.linux-amd64.tar.gz

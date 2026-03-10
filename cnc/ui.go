@@ -3253,7 +3253,7 @@ func (m TUIModel) viewHelp() string {
 
 		b.WriteString(neonOrange.Render("  Project") + "\n")
 		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Name:"), neonCyan.Bold(true).Render("☾℣☽ VISION C2")))
-		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Version:"), white.Render("V2.3")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Version:"), white.Render("V2.5")))
 		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Protocol:"), white.Render("V1_2")))
 		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Language:"), white.Render("Go 1.23+")))
 		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("License:"), white.Render("GNU GPL")))
@@ -3261,7 +3261,7 @@ func (m TUIModel) viewHelp() string {
 
 		b.WriteString("\n" + neonOrange.Render("  Credits") + "\n")
 		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Developer:"), neonPink.Render("Syn")))
-		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Email:"), white.Render("dev@sinners.city")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Email:"), white.Render("hell@sinners.city")))
 		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("X/Twitter:"), white.Render("@synacket")))
 
 		b.WriteString("\n" + neonOrange.Render("  Documentation") + "\n")

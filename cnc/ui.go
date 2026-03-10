@@ -143,16 +143,18 @@ var attackMethods = []struct {
 	desc string
 	cmd  string
 }{
+	// Layer 4
 	{"UDP Flood", "Layer 4 UDP volume attack", "!udpflood"},
 	{"TCP Flood", "Layer 4 TCP connection flood", "!tcpflood"},
-	{"HTTP GET", "Layer 7 GET request flood", "!http"},
-	{"HTTPS/TLS", "Layer 7 encrypted flood", "!https"},
-	{"CF Bypass", "Cloudflare UAM bypass", "!cfbypass"},
-	{"Rapid Reset", "HTTP/2 CVE-2023-44487", "!rapidreset"},
 	{"SYN Flood", "Raw SYN packet flood", "!syn"},
 	{"ACK Flood", "ACK packet flood", "!ack"},
 	{"GRE Flood", "GRE tunnel flood", "!gre"},
 	{"DNS Amp", "DNS amplification attack", "!dns"},
+	// Layer 7
+	{"HTTP GET", "Layer 7 GET request flood", "!http"},
+	{"HTTPS/TLS", "Layer 7 encrypted flood", "!https"},
+	{"CF Bypass", "Cloudflare UAM bypass", "!cfbypass"},
+	{"Rapid Reset", "HTTP/2 CVE-2023-44487", "!rapidreset"},
 }
 
 // isL7Method checks if the attack method supports proxies
@@ -2286,12 +2288,7 @@ func (m TUIModel) viewMethodSelect() string {
 	b.WriteString(mDim.Render("   "+strings.Repeat("─", 50)) + "\n")
 
 	for i, method := range attackMethods {
-		if i == 8 { // After L4 methods, show L7 header
-			b.WriteString("\n")
-			b.WriteString(mAccent.Render("   LAYER 7") + mDim.Render("  application") + "\n")
-			b.WriteString(mDim.Render("   "+strings.Repeat("─", 50)) + "\n")
-		}
-		if i == 2 { // HTTP methods are L7
+		if i == 6 { // After L4 methods, show L7 header
 			b.WriteString("\n")
 			b.WriteString(mAccent.Render("   LAYER 7") + mDim.Render("  application") + "\n")
 			b.WriteString(mDim.Render("   "+strings.Repeat("─", 50)) + "\n")

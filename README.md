@@ -1,9 +1,8 @@
 
 <div align="center">
  
-## Vision C2 
+## Vision C2 - Advanced Linux Botnet Framework
 
-### Advanced Linux Botnet Framework
 
 > 14-arch cross-compiled agents. DDoS, RCE, SOCKS5 pivoting. TLS 1.3 transport.
 > Anti-analysis, anti-sandbox, anti-debugger. Full daemon persistence.
@@ -23,25 +22,18 @@
 
 ## Why Vision?
 
-**Automated setup** — A Python wizard handles everything. Pick your options, deploy, done.
-
-**Encrypted transport** — Full TLS 1.3 bot↔C2 sessions over port 443. Blends with normal HTTPS traffic.
-
-**Real anti-analysis** — 40+ VM/sandbox/debugger signatures. Parent process debugger detection. Sandboxes never reach the main loop.
-
-**Evasion Focused** — All strings AES-128-CTR encrypted at build time with split-key derivation. C2 address passes through a 6-layer decode pipeline (AES → Base64 → XOR → RC4 → byte-sub → MD5 check). Custom UPX packing on every binary.
-
-**HMAC registration** — MD5-based challenge-response with per-campaign sync tokens. Prevents replay attacks.
-
-**Triple-redundant persistence** — Systemd service + cron watchdog + rc.local entry. Kill one, the others bring it back.
-
-**SOCKS5 proxy** — Full pivoting with RFC 1929 auth. Runtime credential updates pushed through the TUI — no redeployment needed.
-
-**Remote shell** — Command execution with full output capture. Built-in Linux shortcuts and post-exploit helpers.
-
-**Daemonized stealth** — Fork+setsid with disguised process names. Single-instance PID lock prevents duplicate agents.
-
-**Layer 7 arsenal** — Cloudflare bypass, HTTP/2 Rapid Reset (CVE-2023-44487), TLS bypass, full proxy list support.
+| | |
+|---|---|
+| **Automated Setup** | Python wizard handles config, compilation, and deployment. Run once, done. |
+| **Encrypted Transport** | TLS 1.3 bot↔C2 over port 443. Indistinguishable from normal HTTPS. |
+| **Anti-Analysis** | 40+ VM/sandbox/debugger signatures. Parent process detection. Sandboxes never reach `main()`. |
+| **Stealth Driven** | All strings AES-128-CTR encrypted at build time (split-key derivation). C2 address decoded through a 6-layer pipeline: AES → Base64 → XOR → RC4 → byte-sub → MD5 check. Custom UPX packing on every binary. |
+| **HMAC Registration** | MD5 challenge-response with per-campaign sync tokens. Replay-proof. |
+| **Triple Persistence** | Systemd + cron watchdog + rc.local. Kill one, the others revive it. |
+| **SOCKS5 Pivoting** | RFC 1929 auth. Credentials updated live through the TUI — no redeploy. |
+| **Remote Shell** | Full output capture. Built-in Linux shortcuts + post-exploit helpers. |
+| **Daemon Stealth** | Fork+setsid, disguised process names, PID lock prevents duplicate agents. |
+| **L7 Arsenal** | Cloudflare bypass, HTTP/2 Rapid Reset (CVE-2023-44487), TLS bypass, proxy list support. |
 
 ---
 

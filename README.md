@@ -121,6 +121,8 @@ Run in background with `screen -S vision ./server` (detach: `Ctrl+A, D`).
 
 Split mode: `nc YOUR_IP 420` → type `spamtec` → login. (legacy)
 
+> Full binary map: [`build.sh`](tools/build.sh)
+
 ---
 
 ## 🎨 TUI Navigation
@@ -142,23 +144,6 @@ Split mode: `nc YOUR_IP 420` → type `spamtec` → login. (legacy)
 - **🧦 Socks Manager** — `s`=start socks, `x`=stop. Default: `socks5://visionc2:synackrst666@BOT_IP:1080`. Update creds: `!socksauth <user> <pass>`
 - **📜 Connection Logs** — Bot connect/disconnect history
 
----
-
-## Bot Binaries 
-
-> located in ./bins/ after setup
-
-| Binary | Arch | Target |
-|---|---|---|
-| `ethd0` | x86_64 (amd64) | Servers, desktops |
-| `kworkerd0` | x86 (386) | 32-bit systems |
-| `ip6addrd` | ARM64 | RPi 4, phones |
-| `mdsync1` | ARMv7 | RPi 2/3 |
-| `deferwqd` | MIPS | Routers |
-| `devfreqd0` | MIPSLE | Routers (little-endian) |
-| *+ 8 more* | Various | IoT, embedded |
-
-> Full binary map: [`build.sh`](tools/build.sh)
 
 ---
 

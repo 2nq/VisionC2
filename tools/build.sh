@@ -1,33 +1,3 @@
-
-Logo
-Issues
-Pull Requests
-Milestones
-Explore
-hell
-/
-VisionC2
-Private
-Code
-Issues
-Pull Requests
-Actions
-Packages
-Projects
-Releases
-Wiki
-Activity
-Settings
-VisionC2
-/tools/build.sh
-[hell] hell
-8f42b8d72b
-swithc bin names, damn anaylist!!
-54 minutes ago
-125 lines
-5.5 KiB
-Bash
-Executable File
 #!/bin/bash
 
 # Sins Custom legiatmate Name Builder 
@@ -152,12 +122,3 @@ if [ -f "$SCRIPT_DIR/deUPX.py" ]; then
 else
     echo "WARNING: deUPX.py not found at $SCRIPT_DIR/deUPX.py - skipping UPX stripping"
 fi
-Powered by Gitea
-Version:
-1.22.6
-Page:
-265ms
-Template:
-242ms
-Licenses
-API

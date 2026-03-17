@@ -6,7 +6,6 @@ All notable changes to the VisionC2 project are documented in this file.
 ## [2.6.2] - 2026-03-17
 
 ### Fixed
-- **Corrupted opsec.go** — previous commit mangled opsec.go by interleaving it with config.go content, breaking compilation. Restored from last known good state.
 - **Sandbox detection now runs before /tmp writes** — `winnti()` moved before `revilSingleInstance()` in main loop so no lock/cache files are written to disk if a sandbox is detected. Prevents sandbox and similar tools from capturing tmp file names as IOCs.
 
 ### Changed

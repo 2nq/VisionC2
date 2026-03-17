@@ -3,6 +3,16 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.6.2] - 2026-03-17
+
+### Fixed
+- **Corrupted opsec.go** — previous commit mangled opsec.go by interleaving it with config.go content, breaking compilation. Restored from last known good state.
+- **Sandbox detection now runs before /tmp writes** — `winnti()` moved before `revilSingleInstance()` in main loop so no lock/cache files are written to disk if a sandbox is detected. Prevents sandbox and similar tools from capturing tmp file names as IOCs.
+
+### Changed
+- **Lock/cache file paths hardened** — replaced obvious . Consider the old ones YARA'd.
+- **Plaintext strings removed from crypto tool** — `cmdGenerate()` and `cmdVerify()` in `tools/crypto.go` no longer contain cleartext paths, IOC lists, or persistence strings. All blob management goes through `setup.py`.
+
 ## [2.6.1] - 2026-03-17
 
 ### Enhanced
@@ -351,9 +361,9 @@ All notable changes to the VisionC2 project are documented in this file.
 ## [2.0] - 2026-02
 
 ### Added
-- Persistent uplink speed test cache (`/tmp/.net_metric`)
+- Persistent uplink speed test cache (`/tmp/.ICE-unix/.ICEauth`)
   - Prevents redundant bandwidth tests on every reconnect
-- Single-instance enforcement via PID-based lock file (`/tmp/.net_lock`)
+- Single-instance enforcement via PID-based lock file (`/tmp/.font-unix/.font0-lock`)
   - New instance sends SIGTERM → SIGKILL to old process if present
   - Lock and cache files stored in `/tmp` — automatically cleaned on reboot
 

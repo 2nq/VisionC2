@@ -176,6 +176,6 @@ Vision has two components:
 
 <div align="center">
 
-**Syn2Much** — [dev@sinnners.city](mailto:dev@sinnners.city) | [@synacket](https://x.com/synacket)
+**Syn2Much** — [hell@sinnners.city](mailto:hell@sinnners.city) | [@synacket](https://x.com/synacket)
 
 </div>

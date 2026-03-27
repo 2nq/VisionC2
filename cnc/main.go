@@ -123,11 +123,10 @@ func main() {
 		case "--tui":
 			runTUI = true
 		case "--web":
-			runWebTor = true
+			fmt.Println("[WIP] Web panel is not yet available")
 		case "--split":
 			runSplit = true
 		case "--daemon":
-			runWebTor = true
 			runSplit = true
 		}
 	}
@@ -136,7 +135,7 @@ func main() {
 	if !runTUI && !runWebTor && !runSplit {
 		choices := RunLauncher()
 		runTUI = choices.TUI
-		runWebTor = choices.WebTor
+		runWebTor = false // WIP — disabled until shell output routing is fixed
 		runSplit = choices.Split
 	}
 

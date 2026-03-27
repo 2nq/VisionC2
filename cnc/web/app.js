@@ -722,12 +722,6 @@ function fillPopup(b) {
     html += '<button class="popup-act act-socks" onclick="popupStartSocks(\'' + id + '\')">Start SOCKS</button>';
   }
   html += '<button class="popup-act act-persist" onclick="popupCmd(\'' + id + '\',\'!persist\')">Persist</button>';
-  html += '<button class="popup-act act-scan" onclick="popupStartScan(\'' + id + '\')">Start Scan</button>';
-  html += '<button class="popup-act act-stopscan" onclick="popupCmd(\'' + id + '\',\'!stopscan\')">Stop Scan</button>';
-  html += '<button class="popup-act act-tr064" onclick="popupCmd(\'' + id + '\',\'!tr064\')">TR-064</button>';
-  html += '<button class="popup-act act-stoptr064" onclick="popupCmd(\'' + id + '\',\'!stoptr064\')">Stop TR-064</button>';
-  html += '<button class="popup-act act-hnap" onclick="popupCmd(\'' + id + '\',\'!hnap\')">HNAP</button>';
-  html += '<button class="popup-act act-stophnap" onclick="popupCmd(\'' + id + '\',\'!stophnap\')">Stop HNAP</button>';
   html += '<button class="popup-act act-kill" onclick="popupKill(\'' + id + '\')">Kill</button>';
   acts.innerHTML = html;
 }

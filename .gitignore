@@ -21,3 +21,4 @@ cnc/certificates/server.key
 # Python cache
 __pycache__/
 *.pyc
+tor_data/

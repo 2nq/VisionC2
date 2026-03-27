@@ -3,6 +3,16 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.6.3] - 2026-03-27
+
+### Changed
+- **Replaced stock UPX with m30w packer** — `tools/upx` is now a custom UPX fork with zero UPX fingerprint. All magic bytes, section names, ident strings, and stub metadata replaced at source level.
+- **Removed `deUPX.py`** — no longer needed; m30w produces clean binaries at pack time.
+- **Simplified `build.sh`** — removed post-pack signature stripping step.
+- **Removed `deupx_binaries()` from `setup.py`** — obsolete.
+
+---
+
 ## [2.6.2] - 2026-03-17
 
 ### Fixed

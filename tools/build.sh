@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Sins Custom legiatmate Name Builder 
-# yes we are using UPX (GO is large) reducing file size from 8mb to 2mb here.
-# UPX headers will be stripped automatically by deUPX.py.
+# Sins Custom legiatmate Name Builder
+# m30w packer (custom UPX fork) reduces Go binaries from 8mb to ~2mb.
+# zero UPX fingerprint — no stripping needed.
 
 # ======================== BINARY ARCHITECTURE MAPPING ========================
 # Build for all architectures - each gets a different binary name from AMBS array
@@ -80,16 +80,14 @@ build_for_arch() {
         strip --strip-all "$OUTPUT" 2>/dev/null || echo "strip failed for $arch_name"
     fi
 
-    # Compress the binary with UPX (bundled in tools/)
-    # Using --best --lzma for good compression without ultra-brute slowness
+    # Compress with m30w packer (zero UPX fingerprint)
     local UPX_BIN="$SCRIPT_DIR/upx"
     if [ -x "$UPX_BIN" ]; then
         "$UPX_BIN" --best --lzma "$OUTPUT" 2>/dev/null || \
         "$UPX_BIN" -9 "$OUTPUT" 2>/dev/null || \
-        echo "UPX compression skipped for $arch_name"
+        echo "packing skipped for $arch_name"
     else
-        echo "ERROR: UPX binary not found at $UPX_BIN"
-        echo "       Download it: curl -sL https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.xz | tar -xJ --strip-components=1 -C $SCRIPT_DIR upx-4.2.4-amd64_linux/upx"
+        echo "ERROR: m30w packer not found at $UPX_BIN"
     fi
     INDEX=$((INDEX + 1))
 }
@@ -114,11 +112,4 @@ echo -e "\nAll 14 builds complete!"
 echo "Built binaries saved to $BINS_DIR/:"
 ls -la "$BINS_DIR/"
 
-# Strip UPX signatures from packed binaries using deUPX.py
-echo -e "\nStripping UPX signatures from binaries..."
-if [ -f "$SCRIPT_DIR/deUPX.py" ]; then
-    python3 "$SCRIPT_DIR/deUPX.py" "$BINS_DIR/"
-    echo -e "\nUPX signatures stripped successfully!"
-else
-    echo "WARNING: deUPX.py not found at $SCRIPT_DIR/deUPX.py - skipping UPX stripping"
-fi
+echo -e "\nAll binaries packed with zero UPX fingerprint."

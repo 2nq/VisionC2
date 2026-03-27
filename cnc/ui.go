@@ -3279,7 +3279,7 @@ func (m TUIModel) viewHelp() string {
 
 		b.WriteString("\n" + neonOrange.Render("  Build Errors") + "\n")
 		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("Go not found: export PATH=$PATH:/usr/local/go/bin")))
-		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("UPX missing: sudo apt install upx-ucl")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("m30w packer missing: ensure tools/upx exists")))
 		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("ARM/RISC-V error: update to latest VisionC2")))
 
 		b.WriteString("\n" + neonOrange.Render("  Dead Bots") + "\n")

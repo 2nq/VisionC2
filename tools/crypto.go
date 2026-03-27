@@ -27,22 +27,22 @@ import (
 // Must match the XOR byte functions in bot/opsec.go
 // Patched by setup.py at build time — all zeros until then
 var key = []byte{
-	0xBD ^ 0xCE, // mew      — patched by setup.py
-	0x59 ^ 0x5C, // mewtwo   — patched by setup.py
-	0xFA ^ 0x6B, // celebi   — patched by setup.py
-	0x5C ^ 0xAD, // jirachi  — patched by setup.py
-	0x62 ^ 0xF3, // shaymin  — patched by setup.py
-	0x00 ^ 0xEA, // phione   — patched by setup.py
-	0xEB ^ 0xD4, // manaphy  — patched by setup.py
-	0x67 ^ 0x2C, // victini  — patched by setup.py
-	0x14 ^ 0x67, // keldeo   — patched by setup.py
-	0xC3 ^ 0x2F, // meloetta — patched by setup.py
-	0x3E ^ 0x51, // genesect — patched by setup.py
-	0xA2 ^ 0xAA, // diancie  — patched by setup.py
-	0x80 ^ 0x7A, // hoopa    — patched by setup.py
-	0x32 ^ 0xFA, // volcanion— patched by setup.py
-	0x79 ^ 0xDF, // magearna — patched by setup.py
-	0xF8 ^ 0x78, // marshadow— patched by setup.py
+	0x45 ^ 0x8C, // mew      — patched by setup.py
+	0x81 ^ 0x2B, // mewtwo   — patched by setup.py
+	0x1F ^ 0x16, // celebi   — patched by setup.py
+	0xD7 ^ 0xF5, // jirachi  — patched by setup.py
+	0xB5 ^ 0x4D, // shaymin  — patched by setup.py
+	0x47 ^ 0x31, // phione   — patched by setup.py
+	0x9A ^ 0xE3, // manaphy  — patched by setup.py
+	0x94 ^ 0x86, // victini  — patched by setup.py
+	0x10 ^ 0x20, // keldeo   — patched by setup.py
+	0xDF ^ 0x63, // meloetta — patched by setup.py
+	0x2E ^ 0xA6, // genesect — patched by setup.py
+	0x52 ^ 0x63, // diancie  — patched by setup.py
+	0xE7 ^ 0xEA, // hoopa    — patched by setup.py
+	0x21 ^ 0x37, // volcanion— patched by setup.py
+	0x2E ^ 0x39, // magearna — patched by setup.py
+	0x63 ^ 0x26, // marshadow— patched by setup.py
 }
 
 // ============================================================================

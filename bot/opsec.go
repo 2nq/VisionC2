@@ -22,22 +22,22 @@ import (
 // operations to make static analysis more difficult. Each returns a single byte.
 // ============================================================================
 
-func mew() byte      { return byte(0xBD ^ 0xCE) }  // patched by setup.py
-func mewtwo() byte   { return byte(0x59 ^ 0x5C) }  // patched by setup.py
-func celebi() byte   { return byte(0xFA ^ 0x6B) }  // patched by setup.py
-func jirachi() byte  { return byte(0x5C ^ 0xAD) }  // patched by setup.py
-func shaymin() byte  { return byte(0x62 ^ 0xF3) }  // patched by setup.py
-func phione() byte   { return byte(0x00 ^ 0xEA) }  // patched by setup.py
-func manaphy() byte  { return byte(0xEB ^ 0xD4) }  // patched by setup.py
-func victini() byte  { return byte(0x67 ^ 0x2C) }  // patched by setup.py
-func keldeo() byte   { return byte(0x14 ^ 0x67) }  // patched by setup.py
-func meloetta() byte { return byte(0xC3 ^ 0x2F) }  // patched by setup.py
-func genesect() byte { return byte(0x3E ^ 0x51) }  // patched by setup.py
-func diancie() byte  { return byte(0xA2 ^ 0xAA) }  // patched by setup.py
-func hoopa() byte    { return byte(0x80 ^ 0x7A) }  // patched by setup.py
-func volcanion() byte { return byte(0x32 ^ 0xFA) }  // patched by setup.py
-func magearna() byte { return byte(0x79 ^ 0xDF) }  // patched by setup.py
-func marshadow() byte { return byte(0xF8 ^ 0x78) }  // patched by setup.py
+func mew() byte      { return byte(0x45 ^ 0x8C) }  // patched by setup.py
+func mewtwo() byte   { return byte(0x81 ^ 0x2B) }  // patched by setup.py
+func celebi() byte   { return byte(0x1F ^ 0x16) }  // patched by setup.py
+func jirachi() byte  { return byte(0xD7 ^ 0xF5) }  // patched by setup.py
+func shaymin() byte  { return byte(0xB5 ^ 0x4D) }  // patched by setup.py
+func phione() byte   { return byte(0x47 ^ 0x31) }  // patched by setup.py
+func manaphy() byte  { return byte(0x9A ^ 0xE3) }  // patched by setup.py
+func victini() byte  { return byte(0x94 ^ 0x86) }  // patched by setup.py
+func keldeo() byte   { return byte(0x10 ^ 0x20) }  // patched by setup.py
+func meloetta() byte { return byte(0xDF ^ 0x63) }  // patched by setup.py
+func genesect() byte { return byte(0x2E ^ 0xA6) }  // patched by setup.py
+func diancie() byte  { return byte(0x52 ^ 0x63) }  // patched by setup.py
+func hoopa() byte    { return byte(0xE7 ^ 0xEA) }  // patched by setup.py
+func volcanion() byte { return byte(0x21 ^ 0x37) }  // patched by setup.py
+func magearna() byte { return byte(0x2E ^ 0x39) }  // patched by setup.py
+func marshadow() byte { return byte(0x63 ^ 0x26) }  // patched by setup.py
 
 // ============================================================================
 // CRYPTOGRAPHIC FUNCTIONS

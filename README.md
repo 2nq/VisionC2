@@ -129,7 +129,7 @@ Run in background with `screen -S vision ./server` (detach: `Ctrl+A, D`).
 
 ### Serving Binaries
 
-After setup, compiled bots are in `bins/`. Host them with Apache so `loader.sh` can pull the right binary per-arch:
+After setup, compiled agents are in `bins/`. Host them with Apache (Seperate VPS) so `loader.sh` can pull the right binary per-arch:
 
 ```bash
 sudo apt install -y apache2

@@ -51,10 +51,10 @@ Full output capture with Linux shortcuts and post-exploit helpers.
 Backconnect relay or direct listener. Multi-relay failover with auto-reconnect. Disposable VPS keeps C2 hidden.
 
 ### Stealth & Obfuscation
-40+ VM/sandbox/debugger signatures checked for at startup. Strings AES-128-CTR encrypted at build time with per-build keys. C2 address decoded via 6-layer pipeline: AES → Base64 → XOR → RC4 → byte-sub → MD5 check. **m30w packer** (custom UPX fork) obfuscates every binary.
+40+ VM/sandbox/debugger signatures checked for at startup. Strings AES-128-CTR encrypted at build time with per-build keys. C2 address decoded via 6-layer pipeline: AES → Base64 → XOR → RC4 → byte-sub → MD5 check. Packed with **m30w packer** (custom UPX fork).
 
 ### Persistence
-Triple-layered: systemd + cron watchdog + rc.local. Kill one, others revive it. Fork+setsid daemonization with disguised names and PID lock prevents duplicate agents.
+Triple-layered: systemd + cron watchdog + rc.local. Fork+setsid daemonization with disguised names and PID lock prevents duplicate agents.
 
 ### Authentication
 HMAC registration via MD5 challenge-response with per-campaign sync tokens. Replay-proof.

@@ -34,38 +34,30 @@
 ---
 
 ## Features
+### 3-Way C2 Interface
+Tor hidden service web panel, Go TUI, or Telnet CLI — use any or all. Tor panel enables full control from any browser with zero clearnet exposure.
 
 ### Encrypted Transport
+TLS 1.3 over port 443 — indistinguishable from HTTPS.
 
-TLS 1.3 bot↔C2 over port 443 — indistinguishable from normal HTTPS traffic.
-
-### Stealth & Obfuscation
-
-All strings AES-128-CTR encrypted at build time with per-build random keys. C2 address decoded through a 6-layer pipeline: AES → Base64 → XOR → RC4 → byte-sub → MD5 check. Bundled **m30w packer** (custom UPX fork, zero fingerprint) obfuscates every binary.
-
-### Anti-Analysis
-
-40+ VM/sandbox/debugger signatures. Parent process detection. Sandboxes never reach `main()`.
-
-### 3-Way C2 Interface
-
-Tor hidden service web panel, real-time Go TUI, or Telnet CLI. Run one or all simultaneously. The Tor panel gives full control from any browser with zero clearnet exposure.
-
-### SOCKS5 Pivoting
-
-Backconnect relay (primary) or direct listener. Multi-relay failover with auto-reconnect. Disposable relay VPS keeps the C2 hidden.
-
-### Persistence
-
-Triple-layered: systemd + cron watchdog + rc.local. Kill one, the others revive it. Fork+setsid daemonization with disguised process names and PID lock to prevent duplicate agents.
-
-### Authentication
-
-HMAC registration via MD5 challenge-response with per-campaign sync tokens. Replay-proof.
+### Layer 4/7 Arsenal
+10 DDoS vectors across L4 and L7. UDP/TCP/SYN/ACK/GRE/DNS volume floods, HTTP/HTTPS request floods, Cloudflare bypass with session    
+fingerprinting, and HTTP/2 Rapid Reset (CVE-2023-44487). Full proxy support on all L7 methods
 
 ### Remote Shell
+Full output capture with Linux shortcuts and post-exploit helpers.
 
-Full output capture with built-in Linux shortcuts and post-exploit helpers.
+### SOCKS5 Pivoting
+Backconnect relay or direct listener. Multi-relay failover with auto-reconnect. Disposable VPS keeps C2 hidden.
+
+### Stealth & Obfuscation
+40+ VM/sandbox/debugger signatures checked for at startup. Strings AES-128-CTR encrypted at build time with per-build keys. C2 address decoded via 6-layer pipeline: AES → Base64 → XOR → RC4 → byte-sub → MD5 check. **m30w packer** (custom UPX fork) obfuscates every binary.
+
+### Persistence
+Triple-layered: systemd + cron watchdog + rc.local. Kill one, others revive it. Fork+setsid daemonization with disguised names and PID lock prevents duplicate agents.
+
+### Authentication
+HMAC registration via MD5 challenge-response with per-campaign sync tokens. Replay-proof.
 
 ---
 

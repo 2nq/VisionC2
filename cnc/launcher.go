@@ -35,7 +35,7 @@ func newLauncherModel() launcherModel {
 			{"Web Panel (Tor) [WIP]", "Hidden service .onion — no clearnet exposure (coming soon)"},
 			{"Telnet (Split)", "Remote admin CLI on port " + USER_SERVER_PORT},
 		},
-		selected: [3]bool{false, true, false},
+		selected: [3]bool{true, false, false},
 	}
 }
 

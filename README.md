@@ -3,7 +3,7 @@
 # Vision C2 — Advanced Linux Botnet Framework
 
 > DDoS, RCE, SOCKS5 pivoting. TLS 1.3 transport.
-> Full AES encryption. Anti-analysis, anti-sandbox, anti-debugger checks. Full daemonized persistence.
+> Full AES encryption. Anti-analysis and daemonized persistence.
 > Driven through a websocket-powered Tor web panel or real-time Go TUI.
 
 [Video Showcasing Full Features + Installation](https://www.youtube.com/watch?v=KkIg24KwpB0)

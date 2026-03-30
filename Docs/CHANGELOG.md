@@ -3,10 +3,13 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
-## [2.6.6] - 2026-03-30
+## [2.7.0] - 2026-03-30
 
 ### Changed
-- **Sandbox detection trimmed** — procFilters reduced from 48 to 3 entries (chkrootkit, rkhunter only). parentChecks reduced from 17 to 3 (gdb, strace, frida only). sysMarkers unchanged. Bot was exiting on any machine running common admin tools like auditd, tcpdump, wireshark, objdump, readelf, etc.
+- **AES-128 → AES-256** — garuda() now uses a 32-byte key derived from 32 XOR byte functions (16 new pokemon added). All config blobs re-encrypted with AES-256-CTR. charizard() (venusaur C2 encoding) stays MD5 with first 16 key bytes for compatibility.
+- **Sandbox detection trimmed** — procFilters reduced from 48 to 3 entries (chkrootkit, rkhunter only). parentChecks reduced from 17 to 3 (gdb, strace, frida only). Removed qemu from sysMarkers.
+- **Tor panel: uplink speed column** — bot uplink (Mbps) added to /api/bots, bot table (sortable), and bot popup info.
+- **Loader POSIX fix** — loader.sh rewritten for busybox/POSIX sh compatibility (removed bash arrays and local keyword).
 
 ## [2.6.5] - 2026-03-28
 

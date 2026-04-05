@@ -28,7 +28,7 @@ TLS 1.3 + AES-256 encrypted C2 with Tor hidden service web panel, 10 DDoS attack
 <td width="50%">
 
 **3 Control Interfaces**
-Tor hidden service web panel (works from any browser without clearnet exposure, accessible via Tor Browser), interactive Go TUI, or Telnet CLI. RBAC with 4 permission tiers.
+Tor hidden service web panel accessible via Tor Browser with zero clearnet exposure. Interactive Go TUI or Telnet CLI. RBAC with 4 permission tiers.
 
 </td>
 <td width="50%">

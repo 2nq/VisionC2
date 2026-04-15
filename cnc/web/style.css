@@ -469,6 +469,162 @@ body::before {
 }
 
 /* ============================================================================
+   BOT DETAIL SIDEBAR — fixed full-page-height right panel
+   ============================================================================ */
+
+.bot-detail-sidebar {
+  position: fixed;
+  right: 0;
+  top: 56px; /* below header */
+  bottom: 0;
+  width: 0;
+  overflow: hidden;
+  background: var(--bg-primary);
+  border-left: none;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.22s ease;
+  box-shadow: none;
+}
+
+.bot-detail-sidebar.open {
+  width: 320px;
+  border-left: 1px solid var(--border);
+  box-shadow: -6px 0 32px rgba(0, 0, 0, 0.35);
+  overflow: hidden; /* children scroll individually */
+}
+
+.bds-header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.bds-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+.bds-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  border-radius: 3px;
+  transition: color var(--transition), background var(--transition);
+}
+
+.bds-close:hover { color: var(--text); background: var(--bg-card-hover); }
+
+.bds-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 16px;
+}
+
+/* Section dividers inside sidebar */
+.bds-section {
+  padding: 10px 14px 6px;
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+}
+
+.bds-section-title {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+
+/* Action button grid */
+.bds-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.bds-btn {
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.bds-btn:hover { background: var(--bg-card-hover); border-color: var(--border-light); }
+.bds-btn.bds-shell { border-color: var(--accent); color: var(--accent); }
+.bds-btn.bds-shell:hover { background: var(--accent-glow); }
+.bds-btn.bds-kill { border-color: var(--red); color: var(--red); }
+.bds-btn.bds-kill:hover { background: rgba(239,68,68,.1); }
+.bds-btn.bds-wide { grid-column: 1 / -1; text-align: left; }
+
+/* Command console inside sidebar */
+.bds-cmd-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.bds-cmd-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 5px 8px;
+  outline: none;
+  min-width: 0;
+}
+
+.bds-cmd-input:focus { border-color: var(--accent); }
+
+.bds-cmd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.bds-chip {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.bds-chip:hover { background: var(--bg-card-hover); color: var(--accent); border-color: var(--accent); }
+
+/* ============================================================================
    SECTIONS
    ============================================================================ */
 

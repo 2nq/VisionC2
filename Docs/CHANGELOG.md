@@ -3,6 +3,42 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.8.4] - 2026-04-15
+
+### Added
+- **Dashboard — page-wide bot detail sidebar** — left-clicking any bot row opens a full-height fixed panel on the right edge of the page (not clipped to the bots tab); contains all bot metadata and a complete single-target command surface: Shell, Start/Stop SOCKS, Persist, Reinstall, Set Group, Kill buttons plus a free-text command console with `!shell` / `!detach` / `!stream` / `!stopsocks` / `!persist` / `!reinstall` chips; right-click on a row opens the existing floating action popup
+- **Dashboard — shell file browser opens at `/` on new sessions** — `shellWS.onopen` now sends `cd /` for fresh sessions so the file browser immediately populates with the full filesystem root (`/bin`, `/etc`, `/home`, `/lib`, `/root`, `/usr`, `/var`, …) without any manual navigation; restored sessions re-run `ls -laF` for the saved cwd instead
+
+### Fixed
+- **Dashboard — light mode broken after panel theme change** — `applyGlobalTheme` was setting inline CSS custom properties on `:root` which outranked `[data-theme="light"]` attribute-selector rules; `applyTheme` (sun/moon toggle) now calls `clearGlobalThemeVars()` first, removing all inline overrides before applying the data-theme attribute; added `light` and `dark` as named entries in the global theme picker so both are accessible from the dropdown as well as the toggle button
+- **Dashboard — SSE connection dot always red** — `onerror` fires on every normal SSE reconnect cycle (server closing the keep-alive stream), immediately setting the indicator red even when `onopen` fires within milliseconds; added a 3-second debounce before going red so transient reconnects stay green and the dot only goes red during a sustained outage
+
+## [2.8.3] - 2026-04-15
+
+### Changed
+- **`bot/persist.go` — `dragonfly()` no longer requires a download URL** — removed `fetchURL` plaintext config var, `tmplBody` / `scriptLabel` encrypted blobs, and the `carbanak()` cron helper entirely; `dragonfly()` now reads the running binary via `os.Executable()`, copies it into `storeDir/binLabel`, and writes a dynamically-built systemd unit pointing at the copy directly — no shell script, no remote fetch, nothing to store in config; `lazarus()` already handles the cron angle so `carbanak` was redundant
+
+### Fixed
+- **`bot/config.go` — `verboseLog` was `true` in source** — every deployed bot was printing `[DEBUG]` lines to stdout, leaking auth challenges, bot IDs, and C2 resolver hits; flipped to `false`
+- **`bot/main.go` — `oceanLotus` never reaped detached children** — `exec.Cmd.Start()` with no `Wait()` causes every `!bg`/`!detach` command to leave a zombie process until the bot exits; added `go command.Wait()` after a successful `Start()` to reap each child
+- **`bot/attacks.go` — `encodeDNSName` didn't clamp labels to 63 bytes** — DNS wire format reserves the top 2 bits of the length byte (`0xC0` = compression pointer); labels ≥ 64 bytes produced malformed packets and silently broken DNS floods; labels are now truncated to 63 bytes before encoding
+- **`bot/attacks.go` / `bot/socks.go` — no `recover()` in any goroutine** — a single nil-deref or slice OOB in any of the 13+ attack workers would kill the entire bot process; added `guardedGo()` helper with `recover()` in `main.go` and wrapped all attack workers plus the SOCKS accept loop and per-client goroutines
+- **`bot/main.go` — reconnect jitter could be zero** — `rand.Int63n(int64(2*time.Second))` can return 0, collapsing the retry delay to exactly `backoff`; added a 100ms floor so the jitter always produces a non-zero delta
+
+## [2.8.2] - 2026-04-15
+
+### Added
+- **`/api/stats/bots` endpoint** — aggregate bot census for scripted monitoring: total bot count, per-arch / per-country / per-group distribution, uptime bucketing (`<1m`, `<1h`, `<1d`, `>=1d`), total RAM and CPU cores. Gated behind `requireWebAuth` like the rest of the `/api` surface
+- **Relay `-h` usage output** — `flag.Usage` now prints a short description, all flags with defaults, two usage examples, and the plaintext-stats security warning; previously `./relay -h` dumped only the raw `flag.PrintDefaults()` list
+
+### Changed
+- **Relay TLS minimum is now 1.3** — `buildTLSConfig()` was hardcoding `MinVersion: tls.VersionTLS12` in both the loaded-cert and auto-generated paths; bumped to `tls.VersionTLS13` to match the hardened CNC config
+- **CNC TLS now pins max version** — `loadTLSConfig()` sets `MaxVersion: tls.VersionTLS13` alongside the existing `MinVersion: tls.VersionTLS12` so the server never negotiates above 1.3 even on a mis-patched client
+- **CNC missing-cert error is now actionable** — on startup without certs, prints the current working directory, every cert path that was tried, and a ready-to-run `openssl req` command to generate a self-signed pair. Previously printed just `make sure server.crt and server.key exist`
+- **Relay `pickBot()` no longer holds nested locks** — round-robin counter is advanced before acquiring `botsMu.RLock()`; removes a potential deadlock vector if any future caller locks in the reverse order
+- **Relay ephemeral cert lifetime dropped from 10 years to 1 year** — `NotAfter` now uses `365 * 24 * time.Hour`; matches the cert's intent (short-lived, regenerated on every start when no `-cert` is passed)
+- **`tools/crypto.go` no longer panics on AES errors** — `encrypt()` / `aesEncrypt()` call sites used `panic(err)` on `aes.NewCipher` and `rand.Read` failures, producing goroutine stack traces in a CLI. Replaced with `log.Fatalf()` for a clean single-line error
+
 ## [2.8.1] - 2026-04-10
 
 ### Changed

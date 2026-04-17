@@ -8,8 +8,7 @@
 <tr>
 <td width="50%">
 
-**Modular Bot Builds**
-Choose which modules compile into each binary — attacks, SOCKS proxy, or shell-only. Unused code is excluded at compile time via Go build tags, not just disabled at runtime. Bots report their capabilities to the CNC on join so commands only route to bots that can execute them.
+ **Modular Bot Builds**                                                                                                                                                                                                                                                                       Per-build module selection via Go build tags — attacks, SOCKS, or shell-only. Excluded code is absent from the binary entirely, not just disabled. Bots advertise capabilities on join; commands only route to bots that can execute them.
 
 </td>
 <td width="50%">
@@ -98,8 +97,6 @@ wget https://go.dev/dl/go1.24.1.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go1.24.1.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
 ```
-
-> No C compiler needed — all binaries are built with `CGO_ENABLED=0`.
 
 **Minimum:** 512MB RAM, 1GB storage, port 443 open inbound  
 **Recommended:** Ubuntu 22.04+, 2GB+ RAM

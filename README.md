@@ -8,7 +8,7 @@
 <tr>
 <td width="50%">
 
- **Modular Bot Builds**                                                                                                                                                                                                                                                                       Per-build module selection via Go build tags — attacks, SOCKS, or shell-only. Excluded code is absent from the binary entirely, not just disabled. Bots advertise capabilities on join; commands only route to bots that can execute them.
+ **Modular Bot Builds**                                                                                                                                                                                                                                                                       Per-build module selection via Go build tags — attacks, SOCKS, or shell-only. Bots advertise capabilities on join; commands only route to bots that can execute them.
 
 </td>
 <td width="50%">

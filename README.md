@@ -52,7 +52,8 @@ Tor hidden service web panel (zero clearnet exposure). Interactive Go TUI. Telne
 <details>
 <summary><b>📸 Remote Shell & File Browser</b></summary>
 <br>
-<img width="1199" height="703" alt="image" src="https://github.com/user-attachments/assets/6d77106a-5bc8-48d9-b15b-a89f4f365457">
+<img width="1378" height="857" alt="image" src="https://github.com/user-attachments/assets/1885ebfe-ff79-4b05-a084-28e565454824" />
+
 </details>
 
 <br>

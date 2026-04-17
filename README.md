@@ -194,8 +194,6 @@ VisionC2/
 
 > **Note:** All L7 methods support HTTP and SOCKS5 proxy rotation via `-p <proxy_list_url>`.
 
-> ⚠️ Attack methods are **only compiled** into bots built with the `withattacks` tag.
-
 ---
 
 ##  SOCKS5 Proxy System
@@ -205,15 +203,13 @@ Bots backconnect to a relay server — they **never open inbound ports**. The re
 ```
 Client → [SOCKS5] → Relay ←── [backconnect TLS] ──← Bot → Target
 ```
-  > Direct SOCKS5 on bot also aviable incase no relay server
+  > Direct SOCKS5 on bot also available incase no relay server
 
 ### Key Features
 
 - **Zero inbound ports** on bots — bypasses firewalls
 - **Dynamic relay management** — add/remove relays from CNC dashboard without rebuilds
 - **Disposable infrastructure** — rotate relay servers seamlessly
-
-> 🔧 SOCKS functionality is **only compiled** into bots built with the `withsocks` tag.
 
 ---
 

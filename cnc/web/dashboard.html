@@ -144,7 +144,7 @@
                 <div class="ms-actions">
                     <button class="ms-btn ms-btn-group" onclick="msSetGroup()" data-tooltip="Tag selected bots with a group name for batch targeting">Set Group</button>
                     <button class="ms-btn" onclick="msOpenShells()" data-tooltip="Open an interactive reverse shell for each selected bot">Open Shells</button>
-                    <button class="ms-btn" onclick="msCmd('!socks')" data-tooltip="Start a SOCKS5 proxy on each selected bot">Start SOCKS</button>
+                    <button class="ms-btn" onclick="msCmdFiltered('!socks', 'socksEnabled')" data-tooltip="Start a SOCKS5 proxy on each selected bot (skips bots without SOCKS module)">Start SOCKS</button>
                     <button class="ms-btn" onclick="msCmd('!persist')" data-tooltip="Install cron + rc.local + systemd persistence on selected bots">Persist</button>
                     <button class="ms-btn ms-btn-danger" onclick="msKill()" data-tooltip="Wipe all persistence, delete binary, and terminate — irreversible">Kill</button>
                 </div>
@@ -173,6 +173,7 @@
                                     id="sort-uplinkMbps"></span></th>
                             <th class="sortable" onclick="sortBots('processName')" title="Camouflage process name the bot is masquerading as in the process table">Process <span class="sort-arrow"
                                     id="sort-processName"></span></th>
+                            <th title="Modules compiled into this bot: ATK=attacks, SOCKS=proxy">Caps</th>
                             <th class="sortable" onclick="sortBots('socksActive')" title="Whether a SOCKS5 proxy is currently running on this bot">SOCKS <span class="sort-arrow"
                                     id="sort-socksActive"></span></th>
                             <th title="How long this bot has been connected in the current session">Uptime</th>

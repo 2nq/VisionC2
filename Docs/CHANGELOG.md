@@ -3,6 +3,39 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.9.0] - 2026-04-17
+
+### Added
+- **Go build tags for optional bot modules** — `attacks.go` tagged `//go:build withattacks`, `socks.go` tagged `//go:build withsocks`; compiler skips the file entirely when the tag is absent — zero attack or SOCKS code in the binary, not just disabled at runtime; stub files (`attacks_stub.go`, `socks_stub.go`) keep the bot compiling in all four configurations: full, attacks-only, socks-only, shell/management-only; shell-only binary is ~400KB smaller than full
+- **`bot/dispatch.go`** — `blackEnergy` extracted into its own always-compiled file; delegates attack/SOCKS commands to `dispatchAttack()` / `dispatchSocks()` / `dispatchAttackStop()` which resolve to real implementation or no-op stub based on build tags
+- **`bot/dns_codec.go`** — DNS wire-format helpers moved out of `attacks.go` into a dedicated always-compiled file (used by the C2 resolver in all builds)
+- **`bot/caps.go`** — `botCaps()` returns the capability string (`"A"`, `"S"`, `"AS"`, `""`) from `hasAttacks`/`hasSocks` constants set by the active build tag files
+- **Bot capability reporting in REGISTER** — bot appends `:<caps>` to REGISTER; CNC parses it and stores `attacksEnabled`/`socksEnabled` per `BotConnection`; bots without the field default to fully-enabled for backwards compatibility
+- **Capability-filtered broadcast helpers** — `sendToAttackBots()` and `sendToSocksBots()` route only to bots with the respective flag; used by telnet CLI, TUI, and web panel
+- **Capability enforcement on targeted sends** — web sidebar, `handleAPITasks`, telnet `!<botid>` syntax, and TUI socks view all check `attacksEnabled`/`socksEnabled` before sending; `trackSocksState` also skips bots where `socksEnabled == false` so the dashboard cannot show SOCKS active on an attack-only bot
+- **Dashboard — Caps column** — bot table shows `ATK` (red) and/or `SOCKS` (blue) tags per bot; `-` when neither module is compiled in
+- **API key panel shows attack-capable bot count** — `handleAPIMe` returns `getAttackBotCount()` for API-key sessions
+- **`setup.py` — module selection prompt** — Full Setup, C2 Update, and new Module Update option all present a 4-choice menu (Full / Attacks only / SOCKS only / None); choice is converted to Go build tags and passed via `BOT_BUILD_TAGS` env var
+- **`setup.py` option `[3]` — Module Update & Rebuild** — replaced the defunct Relay Endpoints Update (relays are runtime-managed since v2.8.7); presents the module menu and rebuilds bot binaries without touching C2, magic code, or certs
+- **`setup.py` option `[4]` — Restore from `setup_config.txt`** — re-applies a saved campaign config after `git pull` or fresh clone; generates a fresh AES key, re-obfuscates C2 with stored crypt seed + new key, patches source, and rebuilds; old bots keep connecting because magic code and protocol version are unchanged
+- **`setup_config.txt` saves proxy credentials and module flags** — `[Proxy]` and `[Modules]` sections added so a restore has everything needed to reproduce the exact build
+- **`tools/build.sh` — `BOT_BUILD_TAGS` support** — all `go build` invocations read `$BOT_BUILD_TAGS` and pass `-tags` when set
+- **Static binaries — `CGO_ENABLED=0` across all builds** — all 14 bot architectures, CNC, and relay now build with `CGO_ENABLED=0`; pure-Go net resolver, no libc dependency, runs on any Linux kernel regardless of glibc version or presence; resolves crashes on old routers and uClibc/musl systems
+
+### Fixed
+- **`trackSocksState` no longer marks non-SOCKS bots as active** — UI was showing SOCKS on for attack-only bots because the tracking function fired regardless of capability
+- **TUI socks view guards capability** — shows a toast and aborts if selected bot lacks the SOCKS module
+- **`BotInfo` struct carries capability flags** — `AttacksEnabled`/`SocksEnabled` populated from `BotConnection` on refresh
+- **Theme picker syncs to actual active theme** — on first load the dropdown showed "Light" while the page was in dark mode; init now reads `data-theme` to set the correct value; `applyTheme()` also updates the picker on toggle
+
+### Changed
+- **Attack/SOCKS commands route to capable bots only** — `sendToAttackBots()`/`sendToSocksBots()` used in CLI, TUI, and web panel for all broadcast and targeted sends
+- **Dashboard — confirm dialogs standardised** — `msKill()`, `popupKill()`, and stop-SOCKS actions now use the styled `showConfirm()` modal instead of the browser's native `confirm()`; new `confirmStopSocks(botID)` added
+- **Dashboard — multi-select Start SOCKS filters by capability** — new `msCmdFiltered(cmd, capField)` skips bots without the module and reports skip count in the toast
+- **Dashboard — SSE drop banner** — yellow slide-in banner appears after 3-second grace period when live connection is lost; disappears on reconnect
+- **Dashboard — bot ID truncation** — `.bot-id-link` truncates at 130px with ellipsis; full ID shown on hover
+- **Dashboard — bot count always visible** — filter count shows `"Y bots"` when no filter is active, `"X / Y bots"` when filtering; was hidden with no filter
+
 ## [2.8.8] - 2026-04-15
 
 ### Added

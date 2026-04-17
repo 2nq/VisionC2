@@ -174,6 +174,25 @@ body::before {
   box-shadow: 0 0 8px var(--red);
 }
 
+.sse-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9999;
+  background: rgba(234, 179, 8, 0.12);
+  border-bottom: 1px solid rgba(234, 179, 8, 0.35);
+  color: var(--yellow);
+  text-align: center;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  animation: sse-slide-in 0.25s ease;
+}
+
+@keyframes sse-slide-in {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+
 @keyframes pulse-green {
 
   0%,
@@ -937,6 +956,12 @@ body::before {
   transition: all var(--transition);
   padding: 2px 4px;
   border-radius: 3px;
+  max-width: 130px;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .bot-id-link:hover {
@@ -1204,6 +1229,33 @@ tr.bot-row:hover td {
 
 .socks-off .socks-dot {
   background: var(--text-dim);
+}
+
+.cap-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--mono);
+  margin-right: 3px;
+}
+
+.cap-tag-atk {
+  background: rgba(220, 38, 38, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.cap-tag-socks {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.cap-tag-none {
+  color: var(--text-dim);
+  opacity: 0.5;
 }
 
 .group-tag {

